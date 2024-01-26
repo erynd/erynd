@@ -2,6 +2,7 @@
 
 #include <Geode/binding/TextInputDelegate.hpp>
 #include <Geode/loader/Index.hpp>
+#include "BaseModsList.hpp"
 
 using namespace geode::prelude;
 
@@ -14,32 +15,6 @@ enum class ModListType {
     Featured,
 };
 
-enum class ModListDisplay {
-    Concise,
-    Expanded,
-};
-
-struct ModListQuery {
-    /**
-     * Keywords; matches name, id, description, details, developer
-     */
-    std::optional<std::string> keywords;
-    /**
-     * Force already installed mods to be shown on the list unless they explicitly mismatch some
-     * tags (used to show installed mods on index)
-     */
-    bool forceVisibility;
-    /**
-     * Force not installable mods to be shown on the list unless they explicitly mismatch some
-     * tags (used to show installed mods on index)
-     */
-    bool forceInvalid;
-    /**
-     * Empty means current platform
-     */
-    std::unordered_set<PlatformID> platforms = { GEODE_PLATFORM_TARGET };
-    std::unordered_set<std::string> tags;
-};
 
 class ModListLayer : public CCLayer, public TextInputDelegate {
 protected:
@@ -66,6 +41,7 @@ protected:
     EventListener<IndexUpdateFilter> m_indexListener;
     CCMenuItemSpriteExtra* m_leftArrow;
     CCMenuItemSpriteExtra* m_rightArrow;
+    BaseModsList* m_modList = nullptr;
     int m_page = 0;
 
     virtual ~ModListLayer();

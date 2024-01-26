@@ -16,9 +16,8 @@
 #include <Geode/utils/string.hpp>
 #include <Geode/utils/ranges.hpp>
 #include "../../../loader/Index2.hpp"
-
-#define FTS_FUZZY_MATCH_IMPLEMENTATION
-#include <Geode/external/fts/fts_fuzzy_match.h>
+#include "InstalledModsList.hpp"
+#include "IndexModsList.hpp"
 
 #ifdef GEODE_IS_WINDOWS
 #include <filesystem>
@@ -28,127 +27,10 @@ static ModListType g_tab = ModListType::Installed;
 
 // Mods
 
-static std::optional<int> fuzzyMatch(std::string const& kw, std::string const& str) {
-    int score;
-    if (fts::fuzzy_match(kw.c_str(), str.c_str(), score)) {
-        return score;
-    }
-    return std::nullopt;
-}
-
-static std::optional<int> queryMatchKeywords(
-    ModListQuery const& query,
-    ModMetadata const& metadata
-) {
-    double weighted = 0;
-
-    // fuzzy match keywords
-    if (query.keywords) {
-        bool someMatched = false;
-        auto weightedMatch = [&](std::string const& str, double weight) {
-            if (auto match = fuzzyMatch(query.keywords.value(), str)) {
-                weighted = std::max<double>(match.value() * weight, weighted);
-                someMatched = true;
-            }
-        };
-        weightedMatch(metadata.getName(), 2);
-        weightedMatch(metadata.getID(), 1);
-        weightedMatch(metadata.getDeveloper(), 0.5);
-        weightedMatch(metadata.getDetails().value_or(""), 0.05);
-        weightedMatch(metadata.getDescription().value_or(""), 0.2);
-        if (!someMatched) {
-            return std::nullopt;
-        }
-    }
-    else {
-        if (metadata.getID() == "geode.loader") {
-            return 900;
-        }
-        // this is like the dumbest way you could possibly sort alphabetically 
-        // but it does enough to make the mods list somewhat alphabetically 
-        // sorted, at least enough so that if you're scrolling it based on 
-        // alphabetical order you will find the part you're looking for easily 
-        // so it's fine
-        return static_cast<int>(-tolower(metadata.getName()[0]));
-    }
-
-    // if the weight is relatively small we can ignore it
-    if (weighted < 2) {
-        return std::nullopt;
-    }
-
-    // empty keywords always match
-    return static_cast<int>(weighted);
-}
-
-static std::optional<int> queryMatch(ModListQuery const& query, Mod* mod) {
-    // Only checking keywords makes sense for mods since their 
-    // platform always matches, they are always visible and they don't 
-    // currently list their tags
-    return queryMatchKeywords(query, mod->getMetadata());
-}
-
-static std::optional<int> queryMatch(ModListQuery const& query, IndexItemHandle item) {
-    // if no force visibility was provided and item is already installed, don't show it
-    if (!query.forceVisibility && Loader::get()->isModInstalled(item->getMetadata().getID())) {
-        return std::nullopt;
-    }
-    // make sure all tags match
-    for (auto& tag : query.tags) {
-        if (!item->getTags().count(tag)) {
-            return std::nullopt;
-        }
-    }
-    // make sure at least some platform matches
-    if (!ranges::contains(query.platforms, [item](PlatformID id) {
-        return item->getAvailablePlatforms().count(id);
-    })) {
-        return std::nullopt;
-    }
-    // if no force visibility was provided and item is already installed, don't show it
-    auto canInstall = Index::get()->canInstall(item);
-    if (!query.forceInvalid && !canInstall) {
-        // log::warn(
-        //     "Removing {} from the list because it cannot be installed: {}",
-        //     item->getMetadata().getID(),
-        //     canInstall.unwrapErr()
-        // );
-        return std::nullopt;
-    }
-    // otherwise match keywords
-    if (auto match = queryMatchKeywords(query, item->getMetadata())) {
-        auto weighted = match.value();
-        // add extra weight on tag matches
-        if (query.keywords) {
-            if (auto match = fuzzyMatch(query.keywords.value(), ranges::join(item->getTags(), " "))) {
-                weighted += match.value() * 1.4;                    
-            }
-        }
-        // add extra weight to featured items to keep power consolidated in the 
-        // hands of the rich Geode bourgeoisie
-        // the number 420 is a reference to the number one bourgeois of modern 
-        // society, elon musk
-        weighted += item->isFeatured() ? 420 : 0;
-        return static_cast<int>(weighted);
-    }
-    // keywords must match bruh
-    else {
-        return std::nullopt;
-    }
-}
-
-static std::optional<int> queryMatch(ModListQuery const& query, InvalidGeodeFile const& info) {
-    // if any explicit filters were provided, no match
-    if (!query.tags.empty() || query.keywords.has_value()) {
-        return std::nullopt;
-    }
-    return 0;
-}
-
 void ModListLayer::onPageLeft(CCObject* sender) {
     if (m_page > 0) {
         m_page--;
-        this->reloadList(true);
+        m_modList->updatePage(m_page);
     }
     if (m_page == 0) {
         m_leftArrow->setVisible(false);
@@ -156,11 +38,12 @@ void ModListLayer::onPageLeft(CCObject* sender) {
 }
 void ModListLayer::onPageRight(CCObject* sender) {
     m_page++;
-    this->reloadList(true);
+    m_modList->updatePage(m_page);
     m_leftArrow->setVisible(true);
 }
 
 CCArray* ModListLayer::createModCells(ModListType type, ModListQuery const& query) {
+    #if 0
     auto mods = CCArray::create();
     switch (type) {
         default:
@@ -247,6 +130,7 @@ CCArray* ModListLayer::createModCells(ModListType type, ModListQuery const& quer
         } break;
     }
     return mods;
+    #endif
 }
 
 // UI
@@ -322,25 +206,6 @@ bool ModListLayer::init() {
     );
     listDisplayType->setPosition(-210.f, 50.0f);
     m_topMenu->addChild(listDisplayType);
-
-    // add list status label
-    m_listLabel = CCLabelBMFont::create("", "bigFont.fnt");
-
-    m_listLabel->setPosition(winSize / 2);
-    m_listLabel->setScale(.6f);
-    m_listLabel->setVisible(false);
-    m_listLabel->setZOrder(1001);
-
-    this->addChild(m_listLabel);
-
-    // add index update status label
-    m_indexUpdateLabel = CCLabelBMFont::create("", "goldFont.fnt");
-
-    m_indexUpdateLabel->setPosition(winSize.width / 2, winSize.height / 2 - 80.f);
-    m_indexUpdateLabel->setScale(.5f);
-    m_indexUpdateLabel->setZOrder(1001);
-
-    this->addChild(m_indexUpdateLabel);
 
     // tabs
     m_installedTabBtn = TabButton::create("Installed", this, menu_selector(ModListLayer::onTab));
@@ -493,6 +358,7 @@ void ModListLayer::updateList(CCArray* items, bool keepScroll) {
         this->getListSize().width,
         this->getListSize().height
     );
+
     // please forgive me for this code
     auto problemsCell = typeinfo_cast<ProblemsCell*>(list->m_entries->objectAtIndex(0));
     if (problemsCell) {
@@ -573,38 +439,11 @@ void ModListLayer::updateList(CCArray* items, bool keepScroll) {
     m_searchBtn->setVisible(!hasQuery);
     m_searchClearBtn->setVisible(hasQuery);
 
-
-#if 0
-    // add/remove "Check for Updates" button
-    if (
-		// only show it on the install tab
-		g_tab == ModListType::Installed &&
-		// check if index is updated, and if not 
-		// add button if it doesn't exist yet
-		!Index::get()->isUpToDate()
-	) {
-        if (!m_checkForUpdatesBtn) {
-            auto checkSpr = ButtonSprite::create("Check for Updates");
-            checkSpr->setScale(.7f);
-            m_checkForUpdatesBtn = CCMenuItemSpriteExtra::create(
-                checkSpr, this, menu_selector(ModListLayer::onCheckForUpdates)
-            );
-            m_checkForUpdatesBtn->setPosition(0, -winSize.height / 2 + 40.f);
-            m_topMenu->addChild(m_checkForUpdatesBtn);
-        }
-    }
-    // otherwise remove the button if it
-    // exists
-    else if (m_checkForUpdatesBtn) {
-        m_checkForUpdatesBtn->removeFromParent();
-        m_checkForUpdatesBtn = nullptr;
-    }
-#endif
-
     handleTouchPriority(this);
 }
 
 void ModListLayer::reloadList(bool keepScroll, std::optional<ModListQuery> const& query) {
+#if 0
     if (query) {
         m_query = query.value();
     }
@@ -641,6 +480,8 @@ void ModListLayer::reloadList(bool keepScroll, std::optional<ModListQuery> const
             });
         } break;
     };
+#endif
+    m_modList->reloadList();
 }
 
 void ModListLayer::updateAllStates() {
@@ -679,6 +520,7 @@ void ModListLayer::onCheckForUpdates(CCObject*) {
 }
 
 void ModListLayer::onIndexUpdate(IndexUpdateEvent* event) {
+#if 0
     std::visit(makeVisitor {
         [&](UpdateProgress const& prog) {
             auto msg = prog.second;
@@ -695,12 +537,10 @@ void ModListLayer::onIndexUpdate(IndexUpdateEvent* event) {
             this->reloadList();
         }
     }, event->status);
+#endif
 }
 
 void ModListLayer::onExit(CCObject*) {
-    // since this layer is funny and always exists in memory,
-    // we gotta manually detatch the input nodes
-    m_searchInput->m_textField->detachWithIME();
     CCDirector::sharedDirector()->replaceScene(
         CCTransitionFade::create(.5f, MenuLayer::scene(false))
     );
@@ -718,7 +558,7 @@ void ModListLayer::onExpand(CCObject* sender) {
     m_display = static_cast<CCMenuItemToggler*>(sender)->isToggled() ?
         ModListDisplay::Concise :
         ModListDisplay::Expanded;
-    this->reloadList(false);
+    m_modList->updateDisplay(m_display);
 }
 
 void ModListLayer::onFilters(CCObject*) {
@@ -741,7 +581,17 @@ void ModListLayer::onTab(CCObject* pSender) {
     if (pSender) {
         g_tab = static_cast<ModListType>(pSender->getTag());
     }
-    this->reloadList(false);
+    // this->reloadList(false);
+    if (m_modList) m_modList->removeFromParent();
+    switch (g_tab) {
+        case ModListType::Installed: {
+            m_modList = InstalledModsList::create(this, this->getListSize(), m_display);
+        } break;
+        case ModListType::Download: {
+            m_modList = IndexModsList::create(this, this->getListSize(), m_display);
+        } break;
+    }
+    this->addChild(m_modList);
 
     auto toggleTab = [this](CCMenuItemToggler* member) -> void {
         auto isSelected = member->getTag() == static_cast<int>(g_tab);
