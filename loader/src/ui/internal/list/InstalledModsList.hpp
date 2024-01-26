@@ -18,4 +18,5 @@ public:
     void updateList(CCArray* items) override;
     void updateDisplay(ModListDisplay display) override;
     void updatePage(int page) override;
+    int itemCount() override;
 };

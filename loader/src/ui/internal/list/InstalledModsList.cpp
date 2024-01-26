@@ -156,6 +156,7 @@ CCArray* InstalledModsList::createModCells() {
 
     // then other mods
 
+#if 0
     // newly installed
     for (auto const& item : Index::get()->getItems()) {
         if (!item->isInstalled() ||
@@ -168,6 +169,7 @@ CCArray* InstalledModsList::createModCells() {
             sorted.insert({ match.value(), cell });
         }
     }
+#endif
 
     // loaded
     for (auto const& mod : Loader::get()->getAllMods()) {
@@ -193,6 +195,19 @@ CCArray* InstalledModsList::createModCells() {
     return mods;
 }
 
+int InstalledModsList::itemCount() {
+    int count = 0;
+    if (!Loader::get()->getProblems().empty()) {
+        count++;
+    }
+    for (auto const& mod : Loader::get()->getAllMods()) {
+        if (auto match = queryMatch(m_query, mod)) {
+            count++;
+        }
+    }
+    return count;
+}
+
 void InstalledModsList::updateList(CCArray* items) {
     BaseModsList::updateList(items);
 
@@ -202,6 +217,18 @@ void InstalledModsList::updateList(CCArray* items) {
         m_listLabel->setString("No mods found");
     } else {
         m_listLabel->setVisible(false);
+    }
+
+    // please forgive me for this code
+    if (m_list->m_listView->m_entries->count() > 0) {
+        auto problemsCell = typeinfo_cast<ProblemsCell*>(m_list->m_listView->m_entries->objectAtIndex(0));
+        if (problemsCell) {
+            auto cellView =
+                typeinfo_cast<TableViewCell*>(m_list->m_listView->m_tableView->m_cellArray->objectAtIndex(0));
+            if (cellView && problemsCell->getColor()) {
+                cellView->m_backgroundLayer->setColor(*problemsCell->getColor());
+            }
+        }
     }
 }
 

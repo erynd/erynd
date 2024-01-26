@@ -48,6 +48,7 @@ protected:
 
     void onPageLeft(CCObject* sender);
     void onPageRight(CCObject* sender);
+    void updateArrowState();
 
     bool init() override;
 

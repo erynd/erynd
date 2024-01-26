@@ -45,10 +45,13 @@ void BaseModsList::updateList(CCArray* items) {
     auto winSize = CCDirector::sharedDirector()->getWinSize();
     auto size = this->getContentSize();
 
-    float scroll = 0.0f;
-    if (m_list) {
-        scroll = m_list->m_listView->m_tableView->m_contentLayer->getPositionY();
-    }
+    // float scroll = 0.0f;
+    // if (m_list) {
+    //     scroll = m_list->m_listView->m_tableView->m_contentLayer->getPositionY();
+    // }
+
+    // remove old list
+    if (m_list) m_list->removeFromParent();
 
     // create new list
     auto list = ListView::create(
@@ -57,18 +60,8 @@ void BaseModsList::updateList(CCArray* items) {
         size.width,
         size.height
     );
-
-    // please forgive me for this code
-    auto problemsCell = typeinfo_cast<ProblemsCell*>(list->m_entries->objectAtIndex(0));
-    if (problemsCell) {
-        auto cellView =
-            typeinfo_cast<TableViewCell*>(list->m_tableView->m_cellArray->objectAtIndex(0));
-        if (cellView && problemsCell->getColor()) {
-            cellView->m_backgroundLayer->setColor(*problemsCell->getColor());
-        }
-    }
-
-    list->m_tableView->m_contentLayer->setPositionY(scroll);
+    
+    // list->m_tableView->m_contentLayer->setPositionY(scroll);
 
     // set list
     // TODO: 6th param dont know
@@ -98,4 +91,8 @@ void BaseModsList::updatePage(int page) {
 
 void BaseModsList::reloadList() {
     this->updateList(CCArray::create());
+}
+
+int BaseModsList::itemCount() {
+    return 0;
 }

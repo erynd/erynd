@@ -31,7 +31,7 @@ void IndexModsList::addLoadingCircle() {
     if (!m_loadingCircle) {
         m_loadingCircle = LoadingCircle::create();
         m_loadingCircle->setPosition(size / 2);
-        m_loadingCircle->setVisible(false);
+        m_loadingCircle->setVisible(true);
         m_loadingCircle->setZOrder(1001);
         
         this->addChild(m_loadingCircle);
@@ -66,6 +66,7 @@ void IndexModsList::handleError(std::string const& error) {
 }
 
 void IndexModsList::updateItems() {
+    this->updateList(CCArray::create());
     this->addLoadingCircle();
 
     Index2::get().getPageItems(m_page, IndexQuery2(), 
@@ -79,6 +80,7 @@ void IndexModsList::updateItems() {
 void IndexModsList::handleItems(std::vector<IndexItem2> const& items) {
     this->removeLoadingCircle();
     m_items = items;
+    m_itemCount = 200;
 
     auto mods = CCArray::create();
     for (auto& item : items) {
@@ -91,4 +93,8 @@ void IndexModsList::handleItems(std::vector<IndexItem2> const& items) {
 
 void IndexModsList::reloadList() {
     this->updateItems();
+}
+
+int IndexModsList::itemCount() {
+    return 200;
 }

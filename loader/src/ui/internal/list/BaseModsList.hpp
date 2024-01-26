@@ -51,6 +51,7 @@ public:
 
     bool init(ModListLayer* layer, CCSize const& size, ModListDisplay display);
 
+    virtual int itemCount();
     virtual void reloadList();
     virtual void updateList(CCArray* items);
     virtual void updateDisplay(ModListDisplay display);

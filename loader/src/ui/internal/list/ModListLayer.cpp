@@ -31,15 +31,31 @@ void ModListLayer::onPageLeft(CCObject* sender) {
     if (m_page > 0) {
         m_page--;
         m_modList->updatePage(m_page);
+        m_rightArrow->setVisible(true);
     }
-    if (m_page == 0) {
-        m_leftArrow->setVisible(false);
-    }
+    this->updateArrowState();
 }
 void ModListLayer::onPageRight(CCObject* sender) {
-    m_page++;
-    m_modList->updatePage(m_page);
-    m_leftArrow->setVisible(true);
+    if (m_modList->itemCount() > 20 * (m_page + 1)) {
+        m_page++;
+        m_modList->updatePage(m_page);   
+    }
+    this->updateArrowState();
+}
+
+void ModListLayer::updateArrowState() {
+    if (m_modList->itemCount() > 20 * (m_page + 1)) {
+        m_rightArrow->setVisible(true);
+    }
+    else {
+        m_rightArrow->setVisible(false);
+    }
+    if (m_page > 0) {
+        m_leftArrow->setVisible(true);
+    }
+    else {
+        m_leftArrow->setVisible(false);
+    }
 }
 
 CCArray* ModListLayer::createModCells(ModListType type, ModListQuery const& query) {
@@ -254,7 +270,7 @@ bool ModListLayer::init() {
 
     m_rightArrow = CCMenuItemSpriteExtra::create(arrowSpr2, this, menu_selector(ModListLayer::onPageRight));
     m_rightArrow->setPosition(210.f, .0f);
-    m_rightArrow->setVisible(true);
+    m_rightArrow->setVisible(false);
     m_topMenu->addChild(m_rightArrow);
 
     // add menus
@@ -455,9 +471,6 @@ void ModListLayer::reloadList(bool keepScroll, std::optional<ModListQuery> const
             std::optional<std::string>(m_searchInput->getString()) : 
             std::nullopt;
 
-    // remove old list
-    if (m_list) m_list->removeFromParent();
-
     switch (g_tab) {
         case (ModListType::Installed): {
             // update list
@@ -591,7 +604,11 @@ void ModListLayer::onTab(CCObject* pSender) {
             m_modList = IndexModsList::create(this, this->getListSize(), m_display);
         } break;
     }
+    m_page = 0;
     this->addChild(m_modList);
+    if (m_modList->itemCount() > 20) {
+        m_rightArrow->setVisible(true);
+    }
 
     auto toggleTab = [this](CCMenuItemToggler* member) -> void {
         auto isSelected = member->getTag() == static_cast<int>(g_tab);
