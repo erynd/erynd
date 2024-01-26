@@ -5,6 +5,7 @@
 #include <Geode/loader/Loader.hpp>
 #include <Geode/loader/ModMetadata.hpp>
 #include <Geode/loader/Index.hpp>
+#include "../../../loader/Index2.hpp"
 
 using namespace geode::prelude;
 
@@ -82,10 +83,18 @@ public:
  */
 class IndexItemCell : public ModListCell {
 protected:
-    IndexItemHandle m_item;
+    IndexItemHandle m_item = nullptr;
+    IndexItem2 m_item2;
 
     bool init(
         IndexItemHandle item,
+        ModListLayer* list,
+        ModListDisplay display,
+        CCSize const& size
+    );
+
+    bool init(
+        IndexItem2 const& item,
         ModListLayer* list,
         ModListDisplay display,
         CCSize const& size
@@ -97,6 +106,13 @@ protected:
 public:
     static IndexItemCell* create(
         IndexItemHandle item,
+        ModListLayer* list,
+        ModListDisplay display,
+        CCSize const& size
+    );
+
+    static IndexItemCell* create(
+        IndexItem2 const& item,
         ModListLayer* list,
         ModListDisplay display,
         CCSize const& size

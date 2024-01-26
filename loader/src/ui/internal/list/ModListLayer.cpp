@@ -15,6 +15,7 @@
 #include <Geode/ui/ListView.hpp>
 #include <Geode/utils/string.hpp>
 #include <Geode/utils/ranges.hpp>
+#include "../../../loader/Index2.hpp"
 
 #define FTS_FUZZY_MATCH_IMPLEMENTATION
 #include <Geode/external/fts/fts_fuzzy_match.h>
@@ -144,6 +145,21 @@ static std::optional<int> queryMatch(ModListQuery const& query, InvalidGeodeFile
     return 0;
 }
 
+void ModListLayer::onPageLeft(CCObject* sender) {
+    if (m_page > 0) {
+        m_page--;
+        this->reloadList(true);
+    }
+    if (m_page == 0) {
+        m_leftArrow->setVisible(false);
+    }
+}
+void ModListLayer::onPageRight(CCObject* sender) {
+    m_page++;
+    this->reloadList(true);
+    m_leftArrow->setVisible(true);
+}
+
 CCArray* ModListLayer::createModCells(ModListType type, ModListQuery const& query) {
     auto mods = CCArray::create();
     switch (type) {
@@ -188,6 +204,9 @@ CCArray* ModListLayer::createModCells(ModListType type, ModListQuery const& quer
 
         case ModListType::Download: {
             // sort the mods by match score 
+            
+
+            #if 0
             std::multimap<int, IndexItemHandle> sorted;
 
             auto index = Index::get();
@@ -203,9 +222,12 @@ CCArray* ModListLayer::createModCells(ModListType type, ModListQuery const& quer
                     item, this, m_display, this->getCellSize()
                 ));
             }
+            #endif
         } break;
 
         case ModListType::Featured: {
+            // We're disabling this feature for now because it's not very useful
+            #if 0
             // sort the mods by match score 
             std::multimap<int, IndexItemHandle> sorted;
 
@@ -221,6 +243,7 @@ CCArray* ModListLayer::createModCells(ModListType type, ModListQuery const& quer
                     item, this, m_display, this->getCellSize()
                 ));
             }
+            #endif
         } break;
     }
     return mods;
@@ -297,7 +320,7 @@ bool ModListLayer::init() {
     auto listDisplayType = CCMenuItemToggler::create(
         unextendedIconSpr, extendedIconSpr, this, menu_selector(ModListLayer::onExpand)
     );
-    listDisplayType->setPosition(-210.f, .0f);
+    listDisplayType->setPosition(-210.f, 50.0f);
     m_topMenu->addChild(listDisplayType);
 
     // add list status label
@@ -350,6 +373,24 @@ bool ModListLayer::init() {
     m_tabsGradientStencil = CCSprite::create("tab-gradient-mask.png"_spr);
     m_tabsGradientStencil->setAnchorPoint({0.f, 0.f});
     m_tabsGradientNode->setStencil(m_tabsGradientStencil);
+
+    // add arrows
+    auto arrowSpr = CCSprite::createWithSpriteFrameName("GJ_arrow_01_001.png");
+    arrowSpr->setScale(.7f);
+
+    m_leftArrow = CCMenuItemSpriteExtra::create(arrowSpr, this, menu_selector(ModListLayer::onPageLeft));
+    m_leftArrow->setPosition(-210.f, .0f);
+    m_leftArrow->setVisible(false);
+    m_topMenu->addChild(m_leftArrow);
+
+    auto arrowSpr2 = CCSprite::createWithSpriteFrameName("GJ_arrow_01_001.png");
+    arrowSpr2->setScale(.7f);
+    arrowSpr2->setFlipX(true);
+
+    m_rightArrow = CCMenuItemSpriteExtra::create(arrowSpr2, this, menu_selector(ModListLayer::onPageRight));
+    m_rightArrow->setPosition(210.f, .0f);
+    m_rightArrow->setVisible(true);
+    m_topMenu->addChild(m_rightArrow);
 
     // add menus
     m_menu->setZOrder(0);
@@ -437,29 +478,13 @@ void ModListLayer::createSearchControl() {
     this->addChild(m_searchInput);
 }
 
-void ModListLayer::reloadList(bool keepScroll, std::optional<ModListQuery> const& query) {
+void ModListLayer::updateList(CCArray* items, bool keepScroll) {
     auto winSize = CCDirector::sharedDirector()->getWinSize();
-
-    if (query) {
-        m_query = query.value();
-    }
 
     float scroll = 0.0f;
     if (keepScroll && m_list) {
         scroll = m_list->m_listView->m_tableView->m_contentLayer->getPositionY();
     }
-
-    // set search query
-    m_query.keywords =
-        m_searchInput && 
-        m_searchInput->getString().size() ? 
-            std::optional<std::string>(m_searchInput->getString()) : 
-            std::nullopt;
-
-    // remove old list
-    if (m_list) m_list->removeFromParent();
-
-    auto items = this->createModCells(g_tab, m_query);
 
     // create new list
     auto list = ListView::create(
@@ -548,6 +573,8 @@ void ModListLayer::reloadList(bool keepScroll, std::optional<ModListQuery> const
     m_searchBtn->setVisible(!hasQuery);
     m_searchClearBtn->setVisible(hasQuery);
 
+
+#if 0
     // add/remove "Check for Updates" button
     if (
 		// only show it on the install tab
@@ -572,8 +599,48 @@ void ModListLayer::reloadList(bool keepScroll, std::optional<ModListQuery> const
         m_checkForUpdatesBtn->removeFromParent();
         m_checkForUpdatesBtn = nullptr;
     }
+#endif
 
     handleTouchPriority(this);
+}
+
+void ModListLayer::reloadList(bool keepScroll, std::optional<ModListQuery> const& query) {
+    if (query) {
+        m_query = query.value();
+    }
+
+    // set search query
+    m_query.keywords =
+        m_searchInput && 
+        m_searchInput->getString().size() ? 
+            std::optional<std::string>(m_searchInput->getString()) : 
+            std::nullopt;
+
+    // remove old list
+    if (m_list) m_list->removeFromParent();
+
+    switch (g_tab) {
+        case (ModListType::Installed): {
+            // update list
+            this->updateList(this->createModCells(g_tab, m_query), keepScroll);
+        } break;
+        case (ModListType::Download): {
+            this->updateList(CCArray::create(), keepScroll);
+
+            Index2::get().getPageItems(m_page, IndexQuery2(), 
+                [this, keepScroll](std::vector<IndexItem2> const& items) {
+                auto mods = CCArray::create();
+                for (auto& item : items) {
+                    mods->addObject(IndexItemCell::create(
+                        item, this, m_display, this->getCellSize()
+                    ));
+                }
+                this->updateList(mods, keepScroll);
+            }, [](std::string const& error) {
+                log::warn("Failed to get index items: {}", error);
+            });
+        } break;
+    };
 }
 
 void ModListLayer::updateAllStates() {

@@ -64,8 +64,14 @@ protected:
     ModListQuery m_query;
     ModListDisplay m_display = ModListDisplay::Concise;
     EventListener<IndexUpdateFilter> m_indexListener;
+    CCMenuItemSpriteExtra* m_leftArrow;
+    CCMenuItemSpriteExtra* m_rightArrow;
+    int m_page = 0;
 
     virtual ~ModListLayer();
+
+    void onPageLeft(CCObject* sender);
+    void onPageRight(CCObject* sender);
 
     bool init() override;
 
@@ -98,4 +104,5 @@ public:
     ModListQuery& getQuery();
 
     void reloadList(bool keepScroll = true, std::optional<ModListQuery> const& query = std::nullopt);
+    void updateList(CCArray* items, bool keepScroll = true);
 };

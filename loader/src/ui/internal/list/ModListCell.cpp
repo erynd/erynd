@@ -370,6 +370,20 @@ IndexItemCell* IndexItemCell::create(
     return nullptr;
 }
 
+IndexItemCell* IndexItemCell::create(
+    IndexItem2 const& item,
+    ModListLayer* list,
+    ModListDisplay display,
+    CCSize const& size
+) {
+    auto ret = new IndexItemCell();
+    if (ret && ret->init(item, list, display, size)) {
+        return ret;
+    }
+    CC_SAFE_DELETE(ret);
+    return nullptr;
+}
+
 bool IndexItemCell::init(
     IndexItemHandle item,
     ModListLayer* list,
@@ -424,16 +438,72 @@ bool IndexItemCell::init(
     return true;
 }
 
+bool IndexItemCell::init(
+    IndexItem2 const& item,
+    ModListLayer* list,
+    ModListDisplay display,
+    CCSize const& size
+) {
+    if (!ModListCell::init(list, size))
+        return false;
+
+    m_item2 = item;
+
+    // bool justInstalled = item->isInstalled() && !Loader::get()->isModInstalled(item->getMetadata().getID());
+
+    this->setupInfo(item.intoMetadata(), 0, display, false);
+
+    // if (justInstalled) {
+    //     auto restartSpr = ButtonSprite::create("Restart", "bigFont.fnt", "GJ_button_03.png", .8f);
+    //     restartSpr->setScale(.65f);
+
+    //     auto restartBtn = CCMenuItemSpriteExtra::create(restartSpr, this, menu_selector(IndexItemCell::onRestart));
+    //     m_menu->addChild(restartBtn);
+    // }
+    // else {
+        auto viewSpr = ButtonSprite::create("View", "bigFont.fnt", "GJ_button_01.png", .8f);
+        viewSpr->setScale(.65f);
+
+        auto viewBtn =
+            CCMenuItemSpriteExtra::create(viewSpr, this, menu_selector(IndexItemCell::onInfo));
+        m_menu->addChild(viewBtn);
+    // }
+
+    // if (item->getTags().size()) {
+    //     auto tagRow = CCNode::create();
+    //     tagRow->setContentSize({m_width, m_height});
+    //     tagRow->setLayout(
+    //         RowLayout::create()
+    //             ->setAxisAlignment(AxisAlignment::Start)
+    //             ->setAutoScale(false)
+    //             ->setGap(3.f)
+    //     );
+    //     m_columnMenu->insertAfter(tagRow, m_developerBtn);
+    //     for (auto& category : item->getTags()) {
+    //         auto node = TagNode::create(category);
+    //         node->setScale(.3f);
+    //         tagRow->addChild(node);
+    //     }
+    //     tagRow->updateLayout();
+    // }
+
+    this->updateState();
+
+    return true;
+}
+
 void IndexItemCell::updateState() {
     this->updateCellLayout();
 }
 
 std::string IndexItemCell::getDeveloper() const {
-    return m_item->getMetadata().getDeveloper();
+    if (m_item) return m_item->getMetadata().getDeveloper();
+    return m_item2.m_developer;
 }
 
 CCNode* IndexItemCell::createLogo(CCSize const& size) {
-    return geode::createIndexItemLogo(m_item, size);
+    if (m_item) geode::createIndexItemLogo(m_item, size);
+    return geode::createDefaultLogo(size);
 }
 
 // InvalidGeodeFileCell
