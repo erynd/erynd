@@ -9,29 +9,41 @@ using namespace geode::node_ids;
 
 $register_ids(MenuLayer) {
     // set IDs to everything
+    size_t spriteOffset = 0;
+    size_t labelOffset = 0;
+
     setIDSafe(this, 0, "main-menu-bg");
-    setIDSafe<CCSprite>(this, 0, "main-title");
+    setIDSafe<CCSprite>(this, spriteOffset++, "main-title");
 
     auto winSize = CCDirector::get()->getWinSize();
+    auto GM = GameManager::sharedState();
+
+    if(!GM->m_clickedGarage) {
+        setIDSafe<CCSprite>(this, spriteOffset++, "character-select-hint");
+    }
+
+    if(!GM->m_clickedEditor) {
+        setIDSafe<CCSprite>(this, spriteOffset++, "level-editor-hint");
+    }
 
     // controller
     if (PlatformToolbox::isControllerConnected()) {
-        setIDSafe<CCSprite>(this, 1, "play-gamepad-icon");
-        setIDSafe<CCSprite>(this, 2, "editor-gamepad-icon");
-        setIDSafe<CCSprite>(this, 3, "icon-kit-gamepad-icon");
+        setIDSafe<CCSprite>(this, spriteOffset++, "play-gamepad-icon");
+        setIDSafe<CCSprite>(this, spriteOffset++, "editor-gamepad-icon");
+        setIDSafe<CCSprite>(this, spriteOffset++, "icon-kit-gamepad-icon");
 
-        setIDSafe<CCSprite>(this, 4, "settings-gamepad-icon");
-        setIDSafe<CCSprite>(this, 5, "mouse-gamepad-icon");
-        setIDSafe<CCSprite>(this, 6, "click-gamepad-icon");
+        setIDSafe<CCSprite>(this, spriteOffset++, "settings-gamepad-icon");
 
-        setIDSafe<CCLabelBMFont>(this, 0, "mouse-gamepad-label");
-        setIDSafe<CCLabelBMFont>(this, 1, "click-gamepad-label");
+        if(!GM->getGameVariable("0028")) {
+            setIDSafe<CCSprite>(this, spriteOffset++, "mouse-gamepad-icon");
+            setIDSafe<CCSprite>(this, spriteOffset++, "click-gamepad-icon");
 
-        setIDSafe<CCLabelBMFont>(this, 2, "player-username");
+            setIDSafe<CCLabelBMFont>(this, labelOffset++, "mouse-gamepad-label");
+            setIDSafe<CCLabelBMFont>(this, labelOffset++, "click-gamepad-label");
+        }
     }
-    else {
-        setIDSafe<CCLabelBMFont>(this, 0, "player-username");
-    }
+    
+    setIDSafe<CCLabelBMFont>(this, labelOffset++, "player-username");
     
     // main menu
     if (auto menu = getChildOfType<CCMenu>(this, 0)) {
@@ -102,6 +114,8 @@ $register_ids(MenuLayer) {
         setIDSafe(menu, 1, "facebook-button");
         setIDSafe(menu, 2, "twitter-button");
         setIDSafe(menu, 3, "youtube-button");
+        setIDSafe(menu, 4, "twitch-button");
+        setIDSafe(menu, 5, "discord-button");
     }
     
     // more games menu

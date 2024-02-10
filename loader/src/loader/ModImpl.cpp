@@ -75,8 +75,8 @@ std::string Mod::Impl::getName() const {
     return m_metadata.getName();
 }
 
-std::string Mod::Impl::getDeveloper() const {
-    return m_metadata.getDeveloper();
+std::vector<std::string> Mod::Impl::getDevelopers() const {
+    return m_metadata.getDevelopers();
 }
 
 std::optional<std::string> Mod::Impl::getDescription() const {
@@ -327,16 +327,12 @@ bool Mod::Impl::hasSetting(std::string_view const key) const {
     return false;
 }
 
-std::string Mod::Impl::getLaunchArgPrefix() const {
-    return m_metadata.getID() + ".";
-}
-
-std::string Mod::Impl::getLaunchArgName(std::string_view const name) const {
-    return this->getLaunchArgPrefix() + std::string(name);
+std::string Mod::Impl::getLaunchArgumentName(std::string_view const name) const {
+    return this->getID() + "." + std::string(name);
 }
 
 std::vector<std::string> Mod::Impl::getLaunchArgumentNames() const {
-    auto prefix = getLaunchArgPrefix();
+    auto prefix = this->getID() + ".";
     std::vector<std::string> names;
     for (const auto& name : Loader::get()->getLaunchArgumentNames()) {
         if (name.starts_with(prefix)) {
@@ -347,22 +343,26 @@ std::vector<std::string> Mod::Impl::getLaunchArgumentNames() const {
 }
 
 bool Mod::Impl::hasLaunchArgument(std::string_view const name) const {
-    return Loader::get()->hasLaunchArgument(this->getLaunchArgName(name));
+    return Loader::get()->hasLaunchArgument(this->getLaunchArgumentName(name));
 }
 
 std::optional<std::string> Mod::Impl::getLaunchArgument(std::string_view const name) const {
-    return Loader::get()->getLaunchArgument(this->getLaunchArgName(name));
+    return Loader::get()->getLaunchArgument(this->getLaunchArgumentName(name));
 }
 
-bool Mod::Impl::getLaunchBool(std::string_view const name) const {
-    return Loader::get()->getLaunchBool(this->getLaunchArgName(name));
+bool Mod::Impl::getLaunchFlag(std::string_view const name) const {
+    return Loader::get()->getLaunchFlag(this->getLaunchArgumentName(name));
 }
 
 // Loading, Toggling, Installing
 
 Result<> Mod::Impl::loadBinary() {
-    // i dont know where to put this so ill just plop it here
-    GEODE_UNWRAP(m_metadata.checkGameVersion());
+    if (!this->isInternal() && Loader::get()->getLaunchFlag("safe-mode")) {
+        // pretend to have loaded the mod, so that it still shows up on the mod list properly,
+        // while the user can still toggle/uninstall it
+        m_enabled = true;
+        return Ok();
+    }
 
     log::debug("Loading binary for mod {}", m_metadata.getID());
     if (m_enabled)
@@ -381,8 +381,10 @@ Result<> Mod::Impl::loadBinary() {
     LoaderImpl::get()->provideNextMod(m_self);
 
     m_enabled = true;
+    m_isCurrentlyLoading = true;
     auto res = this->loadPlatformBinary();
     if (!res) {
+        m_isCurrentlyLoading = false;
         m_enabled = false;
         // make sure to free up the next mod mutex
         LoaderImpl::get()->releaseNextMod();
@@ -395,6 +397,8 @@ Result<> Mod::Impl::loadBinary() {
 
     ModStateEvent(m_self, ModEventType::Loaded).post();
     ModStateEvent(m_self, ModEventType::Enabled).post();
+
+    m_isCurrentlyLoading = false;
 
     return Ok();
 }
@@ -657,7 +661,19 @@ Result<> Mod::Impl::unzipGeodeFile(ModMetadata metadata) {
     std::error_code ec;
     ghc::filesystem::remove_all(tempDir, ec);
     if (ec) {
-        return Err("Unable to delete temp dir: " + ec.message());
+        auto message = ec.message();
+        #ifdef GEODE_IS_WINDOWS
+            // Force the error message into English
+            char* errorBuf = nullptr;
+            FormatMessageA(
+                FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_IGNORE_INSERTS,
+                nullptr, ec.value(), MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US), (LPSTR)&errorBuf, 0, nullptr);
+            if (errorBuf) {
+                message = errorBuf;
+                LocalFree(errorBuf);
+            }
+        #endif
+        return Err("Unable to delete temp dir: " + message);
     }
 
     (void)utils::file::createDirectoryAll(tempDir);
@@ -731,6 +747,23 @@ void Mod::Impl::setLoggingEnabled(bool enabled) {
 
 bool Mod::Impl::shouldLoad() const {
     return Mod::get()->getSavedValue<bool>("should-load-" + m_metadata.getID(), true);
+}
+
+bool Mod::Impl::isCurrentlyLoading() const {
+    return m_isCurrentlyLoading;
+}
+
+bool Mod::Impl::hasProblems() const {
+    for (auto const& item : m_problems) {
+        if (item.type <= LoadProblem::Type::Recommendation)
+            continue;
+        return true;
+    }
+    return false;
+}
+
+std::vector<LoadProblem> Mod::Impl::getProblems() const {
+    return m_problems;
 }
 
 static Result<ModMetadata> getModImplInfo() {

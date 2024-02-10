@@ -78,7 +78,9 @@ namespace geode {
 
         std::string getID() const;
         std::string getName() const;
+        [[deprecated("Use Mod::getDevelopers instead")]]
         std::string getDeveloper() const;
+        std::vector<std::string> getDevelopers() const;
         std::optional<std::string> getDescription() const;
         std::optional<std::string> getDetails() const;
         ghc::filesystem::path getPackagePath() const;
@@ -151,6 +153,11 @@ namespace geode {
         }
 
         /**
+         * Returns a prefixed launch argument name. See `Mod::getLaunchArgument`
+         * for details about mod-specific launch arguments.
+         */
+        std::string getLaunchArgumentName(std::string_view const name) const;
+        /**
          * Returns the names of the available mod-specific launch arguments.
          */
         std::vector<std::string> getLaunchArgumentNames() const;
@@ -163,17 +170,26 @@ namespace geode {
         /**
          * Get a mod-specific launch argument. This is equivalent to `Loader::getLaunchArgument`
          * with the argument name prefixed by the mod ID. For example, a launch argument named
-         * `modArg` for the mod `author.test` would be specified with `--geode:author.test.modArg=value`.
+         * `mod-arg` for the mod `author.test` would be specified with `--geode:author.test.mod-arg=value`.
          * @param name The argument name
          * @return The value, if present
          */
         std::optional<std::string> getLaunchArgument(std::string_view const name) const;
         /**
-         * Equivalent to a prefixed `Loader::getLaunchBool` call. See `Mod::getLaunchArgument`
+         * Equivalent to a prefixed `Loader::getLaunchFlag` call. See `Mod::getLaunchArgument`
          * for details about mod-specific launch arguments.
          * @param name The argument name
          */
-        bool getLaunchBool(std::string_view const name) const;
+        bool getLaunchFlag(std::string_view const name) const;
+        /**
+         * Equivalent to a prefixed `Loader::parseLaunchArgument` call. See `Mod::getLaunchArgument`
+         * for details about mod-specific launch arguments.
+         * @param name The argument name
+         */
+        template <class T>
+        std::optional<T> parseLaunchArgument(std::string_view const name) const {
+            return Loader::get()->parseLaunchArgument<T>(this->getLaunchArgumentName(name));
+        }
 
         matjson::Value& getSaveContainer();
 

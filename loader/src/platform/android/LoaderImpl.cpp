@@ -38,9 +38,32 @@ void Loader::Impl::addNativeBinariesPath(ghc::filesystem::path const& path) {
 }
 
 bool Loader::Impl::supportsLaunchArguments() const {
-    return false;
+    return true;
 }
 
+#include <loader/console.hpp>
+
 std::string Loader::Impl::getLaunchCommand() const {
-    return std::string(); // Empty
+    std::string launchArgs = "";
+
+    JniMethodInfo t;
+    if (JniHelper::getStaticMethodInfo(t, "com/geode/launcher/utils/GeodeUtils", "getLaunchArguments", "()Ljava/lang/String;")) {
+        jstring str = reinterpret_cast<jstring>(t.env->CallStaticObjectMethod(t.classID, t.methodID));
+        t.env->DeleteLocalRef(t.classID);
+        launchArgs = JniHelper::jstring2string(str);
+        t.env->DeleteLocalRef(str);
+    } else {
+        // this is also defined in utils, but this is a loader function and thus it can't access
+        auto vm = JniHelper::getJavaVM();
+
+        JNIEnv* env;
+        if (vm->GetEnv(reinterpret_cast<void**>(&env), JNI_VERSION_1_6) == JNI_OK) {
+            env->ExceptionClear();
+        }
+
+        // note to self: remove this in about a week (02/11 maybe)
+        console::messageBox("Outdated launcher detected", "A very outdated version of the launcher is currently in use. Please update your launcher for the latest bugfixes and features.", Severity::Warning);
+    }
+
+    return launchArgs;
 }

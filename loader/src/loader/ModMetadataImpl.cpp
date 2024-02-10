@@ -18,7 +18,8 @@ ModMetadata::Impl& ModMetadataImpl::getImpl(ModMetadata& info)  {
 }
 
 bool ModMetadata::Dependency::isResolved() const {
-    return this->importance != Importance::Required ||
+    return
+        this->importance != Importance::Required ||
         this->mod && this->mod->isEnabled() && this->version.compare(this->mod->getVersion());
 }
 
@@ -67,7 +68,7 @@ Result<ModMetadata> ModMetadata::Impl::createFromSchemaV010(ModJson const& rawJs
     JsonChecker checker(impl->m_rawJSON);
     auto root = checker.root(checkerRoot).obj();
 
-    root.addKnownKey("geode");
+    root.needs("geode").into(impl->m_geodeVersion);
     root.addKnownKey("gd");
 
     // Check GD version
@@ -101,14 +102,25 @@ Result<ModMetadata> ModMetadata::Impl::createFromSchemaV010(ModJson const& rawJs
         return Err("[mod.json] is missing target GD version");
     }
 
-
     // don't think its used locally yet
     root.addKnownKey("tags"); 
 
     root.needs("id").validate(MiniFunction<bool(std::string const&)>(&ModMetadata::validateID)).into(impl->m_id);
     root.needs("version").into(impl->m_version);
     root.needs("name").into(impl->m_name);
-    root.needs("developer").into(impl->m_developer);
+    if (root.has("developers")) {
+        if (root.has("developer")) {
+            return Err("[mod.json] can not have both \"developer\" and \"developers\" specified");
+        }
+        for (auto& dev : root.needs("developers").iterate()) {
+            impl->m_developers.push_back(dev.template get<std::string>());
+        }
+    }
+    else {
+        std::string dev;
+        root.needs("developer").into(dev);
+        impl->m_developers = { dev };
+    }
     root.has("description").into(impl->m_description);
     root.has("repository").into(impl->m_repository);
     root.has("early-load").into(impl->m_needsEarlyLoad);
@@ -127,6 +139,16 @@ Result<ModMetadata> ModMetadata::Impl::createFromSchemaV010(ModJson const& rawJs
 
     for (auto& dep : root.has("dependencies").iterate()) {
         auto obj = dep.obj();
+
+        bool onThisPlatform = !obj.has("platforms");
+        for (auto& plat : obj.has("platforms").iterate()) {
+            if (PlatformID::from(plat.get<std::string>()) == GEODE_PLATFORM_TARGET) {
+                onThisPlatform = true;
+            }
+        }
+        if (!onThisPlatform) {
+            continue;
+        }
 
         Dependency dependency;
         obj.needs("id").validate(MiniFunction<bool(std::string const&)>(&ModMetadata::validateID)).into(dependency.id);
@@ -150,6 +172,20 @@ Result<ModMetadata> ModMetadata::Impl::createFromSchemaV010(ModJson const& rawJs
     }
 
     for (auto& [key, value] : root.has("settings").items()) {
+        // Skip settings not on this platform
+        if (value.template is<matjson::Object>()) {
+            auto obj = value.obj();
+            bool onThisPlatform = !obj.has("platforms");
+            for (auto& plat : obj.has("platforms").iterate()) {
+                if (PlatformID::from(plat.get<std::string>()) == GEODE_PLATFORM_TARGET) {
+                    onThisPlatform = true;
+                }
+            }
+            if (!onThisPlatform) {
+                continue;
+            }
+        }
+
         GEODE_UNWRAP_INTO(auto sett, Setting::parse(key, impl->m_id, value));
         impl->m_settings.emplace_back(key, sett);
     }
@@ -194,23 +230,23 @@ Result<ModMetadata> ModMetadata::Impl::create(ModJson const& json) {
             "specified, or its formatting is invalid (required: \"[v]X.X.X\")!"
         );
     }
-    if (schema < Loader::get()->minModVersion()) {
-        return Err(
-            "[mod.json] is built for an older version (" + schema.toString() +
-            ") of Geode (current: " + Loader::get()->getVersion().toString() +
-            "). Please update the mod to the latest version, "
-            "and if the problem persists, contact the developer "
-            "to update it."
-        );
-    }
-    if (schema > Loader::get()->maxModVersion()) {
-        return Err(
-            "[mod.json] is built for a newer version (" + schema.toString() +
-            ") of Geode (current: " + Loader::get()->getVersion().toString() +
-            "). You need to update Geode in order to use "
-            "this mod."
-        );
-    }
+    // if (schema < Loader::get()->minModVersion()) {
+    //     return Err(
+    //         "[mod.json] is built for an older version (" + schema.toString() +
+    //         ") of Geode (current: " + Loader::get()->getVersion().toString() +
+    //         "). Please update the mod to the latest version, "
+    //         "and if the problem persists, contact the developer "
+    //         "to update it."
+    //     );
+    // }
+    // if (schema > Loader::get()->maxModVersion()) {
+    //     return Err(
+    //         "[mod.json] is built for a newer version (" + schema.toString() +
+    //         ") of Geode (current: " + Loader::get()->getVersion().toString() +
+    //         "). You need to update Geode in order to use "
+    //         "this mod."
+    //     );
+    // }
 
     // Handle mod.json data based on target
     if (schema < VersionInfo(0, 1, 0)) {
@@ -351,7 +387,25 @@ std::string ModMetadata::getName() const {
 }
 
 std::string ModMetadata::getDeveloper() const {
-    return m_impl->m_developer;
+    // m_developers should be guaranteed to never be empty, but this is 
+    // just in case it is anyway somehow
+    return m_impl->m_developers.empty() ? "" : m_impl->m_developers.front();
+}
+
+std::string ModMetadata::formatDeveloperDisplayString(std::vector<std::string> const& developers) {
+    switch (developers.size()) {
+        case 0: return "Unknown"; break;
+        case 1: return developers.front(); break;
+        case 2: return developers.front() + " & " + developers.back(); break;
+        default: {
+            return developers.front() + " + " + 
+                std::to_string(developers.size() - 1) + " More";
+        } break;
+    }
+}
+
+std::vector<std::string> ModMetadata::getDevelopers() const {
+    return m_impl->m_developers;
 }
 
 std::optional<std::string> ModMetadata::getDescription() const {
@@ -407,6 +461,10 @@ std::optional<std::string> ModMetadata::getGameVersion() const {
     return m_impl->m_gdVersion;
 }
 
+VersionInfo ModMetadata::getGeodeVersion() const {
+    return m_impl->m_geodeVersion;
+}
+
 Result<> ModMetadata::checkGameVersion() const {
     if (!m_impl->m_gdVersion.empty()) {
         auto const ver = m_impl->m_gdVersion;
@@ -448,7 +506,11 @@ void ModMetadata::setName(std::string const& value) {
 }
 
 void ModMetadata::setDeveloper(std::string const& value) {
-    m_impl->m_developer = value;
+    m_impl->m_developers = { value };
+}
+
+void ModMetadata::setDevelopers(std::vector<std::string> const& value) {
+    m_impl->m_developers = value;
 }
 
 void ModMetadata::setDescription(std::optional<std::string> const& value) {

@@ -48,7 +48,7 @@ public:
     virtual ~Layout() = default;
 };
 
-class GEODE_DLL LayoutOptions {
+class GEODE_DLL LayoutOptions : public CCObject {
 public:
     virtual ~LayoutOptions() = default;
 };
@@ -344,9 +344,7 @@ protected:
 
 public:
     /**
-     * Create a new RowLayout. Note that this class is not automatically 
-     * managed by default, so you must assign it to a CCNode or manually 
-     * manage the memory yourself. See the chainable setters on RowLayout for 
+     * Create a new RowLayout. See the chainable setters on RowLayout for 
      * what options you can customize for the layout
      * @returns Created RowLayout
      */
@@ -362,13 +360,95 @@ protected:
 
 public:
     /**
-     * Create a new ColumnLayout. Note that this class is not automatically 
-     * managed by default, so you must assign it to a CCNode or manually 
-     * manage the memory yourself. See the chainable setters on RowLayout for 
+     * Create a new ColumnLayout. See the chainable setters on RowLayout for 
      * what options you can customize for the layout
      * @returns Created ColumnLayout
      */
     static ColumnLayout* create();
+};
+
+/**
+ * The relative position of a node to its parent in an AnchorLayout
+ */
+enum class Anchor {
+    Center,
+    TopLeft,
+    Top,
+    TopRight,
+    Right,
+    BottomRight,
+    Bottom,
+    BottomLeft,
+    Left,
+};
+
+/**
+ * Options for customizing a node's position in an AnchorLayout
+ */
+class GEODE_DLL AnchorLayoutOptions : public LayoutOptions {
+protected:
+    Anchor m_anchor = Anchor::Center;
+    CCPoint m_offset = CCPointZero;
+
+public:
+    static AnchorLayoutOptions* create();
+
+    Anchor getAnchor() const;
+    CCPoint getOffset() const;
+
+    AnchorLayoutOptions* setAnchor(Anchor anchor);
+    AnchorLayoutOptions* setOffset(CCPoint const& offset);
+};
+
+/**
+ * A layout for positioning nodes at specific positions relative to their 
+ * parent's content size. See `Anchor` for available anchoring options. Useful 
+ * for example for popups, where a popup using `AnchorLayout` can be 
+ * automatically resized without needing to manually shuffle nodes around
+ */
+class GEODE_DLL AnchorLayout : public Layout {
+public:
+    static AnchorLayout* create();
+
+    void apply(CCNode* on) override;
+    CCSize getSizeHint(CCNode* on) const override;
+
+    /**
+     * Get a position according to anchoring rules, with the same algorithm as 
+     * `AnchorLayout` uses to position its nodes
+     * @param in The node whose content size to use as a reference
+     * @param anchor The anchor position
+     * @param offset Offset from the anchor
+     * @returns A position in `in` for the anchored and offsetted location
+     */
+    static CCPoint getAnchoredPosition(CCNode* in, Anchor anchor, CCPoint const& offset);
+};
+
+/**
+ * A layout for automatically copying the content size of a node to other nodes. 
+ * Basically main use case is for FLAlertLayers (setting the size of the 
+ * background and `m_buttonMenu` based on `m_mainLayer`)
+ */
+class GEODE_DLL CopySizeLayout : public cocos2d::AnchorLayout {
+protected:
+    cocos2d::CCArray* m_targets;
+
+public:
+    static CopySizeLayout* create();
+    virtual ~CopySizeLayout();
+
+    /**
+     * Add a target to be automatically resized. Any targets' layouts will 
+     * also be updated when this layout is updated
+     */
+    CopySizeLayout* add(cocos2d::CCNode* target);
+    /**
+     * Remove a target from being automatically resized
+     */
+    CopySizeLayout* remove(cocos2d::CCNode* target);
+
+    void apply(cocos2d::CCNode* in) override;
+    cocos2d::CCSize getSizeHint(cocos2d::CCNode* in) const override;
 };
 
 #pragma warning(pop)

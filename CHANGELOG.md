@@ -1,5 +1,83 @@
 # Geode Changelog
 
+## v2.0.0-beta.17
+ * Add `$override` macro for syntactic sugar (e7a1913)
+ * Add support for platform-specific setting default values as well as platform-specific settings (9c8fcf1)
+ * Change `cc3bFromHexString` and `cc4bFromHexString` to be more strict with parsing by default (9c8fcf1)
+ * `JsonMaybeValue::is` is now a lot more reasonable (9c8fcf1)
+ * Make `LayoutOptions` also `CCObject` (3b7621c)
+ * Fix RobTop's socials in MenuLayer (cee8c74)
+ * Fix issues in CMake (d574248, 4ddd92d)
+ * Fix input nodes being clickable when invisible (bf32946)
+ * Add `gd::vector::push_back` and `gd::vector::pop_back` (1593564)
+
+## v2.0.0-beta.16
+ * Bump minimum CMake version to 3.25
+ * Add support for platform-specific dependencies (30c7d3f)
+ * Adjust content size for the bottom menu in MenuLayer to prevent overlaps
+
+## v2.0.0-beta.15
+ * Add `!` for problem mods to crashlog (5c45725)
+ * Log crashlog path when saved (f832cc5)
+ * Change log filenames (65907ca)
+ * Fix `o` not appearing in crashlog (e95d454)
+ * Fix Scrollbar touch (34e80c1)
+ * Fix infinite loop in nested dependency chain (fda3790)
+ * Fix touch priority messing up after mod download (ba0e13f)
+ * Improve safe mode, listing mods as normal (241ddc3)
+ * Fix `SimpleTextArea` text alignment and size (9d92a7c)
+ * Install resources on local Geode build (e9aa889)
+ * Update json library for better errors (0731f44)
+ * Run binding codegen in CMake configure time (2e20ccc)
+ * Replace media perms with file perms (5f7af1a)
+ * Fix `FloatSettingNode` not accepting decimal point (c83858d)
+ * Throw on invalid json output (e2150cc)
+ * Fix icon positioning in `InstallListCell` (cb7c024)
+
+## v2.0.0-beta.14
+ * Use Breakpad for crash reports on Android ([#481](https://github.com/geode-sdk/geode/pull/481))
+ * Fix available label on LocalModInfoPopup (b4037093)
+ * Remove trailing CR from headers (17153a4f)
+   * Ends up **fixing auto update**
+ * Implement getGameVersion on mac (86ae005f)
+ * Fix mysterious AsyncWebRequest crash (c0352782)
+ * Show message for old android launcher users (c00ccd35)
+ * Add install target for loader itself (36727ced)
+
+## v2.0.0-beta.13
+ * Add new `AnchorLayout` feature ([#476](https://github.com/geode-sdk/geode/pull/476))
+ * Add support for multiple developers in `mod.json` through the `developers` key (85180d5f, f21542a8)
+   * requires CLI v2.9.0 and VS Code extension v1.7.0
+ * No longer consider outdated mods invalid .geode files altogether (d9c65b37)
+
+## v2.0.0-beta.12
+ * Increase target MacOS version to 10.15 (6dc6e9b4)
+   * Not even steam supports 10.13 anymore, and with this change
+   we can finally stop worrying about std::filesystem
+ * Add safety hook for save path on android (0188eee5)
+   * We had a bug where the game would randomly reset your save file
+   on android, and we believe this to be a hook by the launcher itself
+   not being placed properly. So, we also do the hook on Geode itself,
+   for safety.
+ * Fix rob's broken MessageBoxW on Windows (5d631921)
+ * Add utils for setting thread name, show it on log (832bcf81, ce53fb31)
+ * Add some launch arguments for geode (7ccaef90)
+ * Deprecate blocking file picking utils (ee97e2da)
+ * Sort mods by id in crashlog (984d1482)
+
+## v2.0.0-beta.11
+ * Fix `InputNode` funkiness on Windows (bb1fcbe)
+ * Add methods for requesting and querying permissions (9ff9191)
+
+## v2.0.0-beta.10
+ * Make index loading when not downloading async (e81b5e9)
+   * (I can't wait to get rid of the old index)
+ * Log nesting and alignment improvements (f7980d3, 4693eb1)
+ * Fix `Patch` intersection code (45ce360)
+ * Fix `InputNode` touch logic (c551d43)
+ * Force Windows errors to be in English (6ba656c)
+ * Add sprite scaling for `MDTextArea` (5802b78)
+
 ## v2.0.0-beta.9
  * Make the index population async as well (3b3e174)
  * Run Android file callbacks on main thread (79d9184)

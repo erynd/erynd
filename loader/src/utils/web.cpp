@@ -252,6 +252,8 @@ SentAsyncWebRequest::Impl::Impl(SentAsyncWebRequest* self, AsyncWebRequest const
     auto timeoutSeconds = req.m_impl->m_timeoutSeconds;
 
     std::thread([this, timeoutSeconds]() {
+        thread::setName("Curl Request");
+
         AWAIT_RESUME();
 
         auto curl = curl_easy_init();
@@ -332,26 +334,23 @@ SentAsyncWebRequest::Impl::Impl(SentAsyncWebRequest* self, AsyncWebRequest const
         } data{this, file.get()};
 
         curl_easy_setopt(curl, CURLOPT_HEADERDATA, &data);
-        curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, +[](char* buffer, size_t size, size_t nitems, void* ptr){
+        curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, (+[](char* buffer, size_t size, size_t nitems, void* ptr){
             auto data = static_cast<ProgressData*>(ptr);
-            std::string header;
-            header.append(buffer, size * nitems); 
-            // send the header to the response header callback
-            Loader::get()->queueInMainThread([self = data->self, header]() {
-                std::unordered_map<std::string, std::string> headers;
-                std::string line;
-                std::stringstream ss(header);
-                while (std::getline(ss, line)) {
-                    auto colon = line.find(':');
-                    if (colon == std::string::npos) continue;
-                    auto key = line.substr(0, colon);
-                    auto value = line.substr(colon + 1);
-                    headers[key] = value;
+            std::unordered_map<std::string, std::string> headers;
+            std::string line;
+            std::stringstream ss(std::string(buffer, size * nitems));
+            while (std::getline(ss, line)) {
+                auto colon = line.find(':');
+                if (colon == std::string::npos) continue;
+                auto key = line.substr(0, colon);
+                auto value = line.substr(colon + 2);
+                if (value.ends_with('\r')) {
+                    value = value.substr(0, value.size() - 1);
                 }
-                self->m_responseHeader = std::move(headers);
-            });
+                data->self->m_responseHeader[key] = value;
+            }
             return size * nitems;
-        });
+        }));
 
         curl_easy_setopt(
             curl,
@@ -397,6 +396,7 @@ SentAsyncWebRequest::Impl::Impl(SentAsyncWebRequest* self, AsyncWebRequest const
             curl_easy_cleanup(curl);
             return this->error(response_str, code);
         }
+        curl_slist_free_all(headers);
         curl_easy_cleanup(curl);
 
         AWAIT_RESUME();
@@ -412,8 +412,12 @@ SentAsyncWebRequest::Impl::Impl(SentAsyncWebRequest* self, AsyncWebRequest const
                 then(*m_self, ret);
                 l.lock();
             }
-            std::lock_guard __(RUNNING_REQUESTS_MUTEX);
-            RUNNING_REQUESTS.erase(m_id);
+            // Delay the destruction of SentAsyncWebRequest till the next frame
+            // otherwise we'd have an use-after-free
+            Loader::get()->queueInMainThread([m_id = m_id] {
+                std::lock_guard __(RUNNING_REQUESTS_MUTEX);
+                RUNNING_REQUESTS.erase(m_id);
+            });
         });
     }).detach();
 }
@@ -571,7 +575,12 @@ AsyncWebRequest& AsyncWebRequest::timeout(std::chrono::seconds seconds) {
 }
 
 AsyncWebRequest& AsyncWebRequest::header(std::string_view const header) {
-    m_impl->m_httpHeaders.push_back(std::string(header));
+    std::string str(header);
+    // remove \r and \n
+    str.erase(std::remove_if(str.begin(), str.end(), [](char c) {
+        return c == '\r' || c == '\n';
+    }), str.end());
+    m_impl->m_httpHeaders.push_back(str);
     return *this;
 }
 

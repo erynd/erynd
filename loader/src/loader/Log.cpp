@@ -9,6 +9,8 @@
 #include <fmt/chrono.h>
 #include <fmt/format.h>
 #include <iomanip>
+#include <memory>
+#include <utility>
 
 using namespace geode::prelude;
 using namespace geode::log;
@@ -89,22 +91,32 @@ std::string cocos2d::format_as(cocos2d::ccColor4B const& col) {
 
 // Log
 
+inline static thread_local int32_t s_nestLevel = 0;
+inline static thread_local int32_t s_nestCountOffset = 0;
+
 void log::vlogImpl(Severity sev, Mod* mod, fmt::string_view format, fmt::format_args args) {
-    Logger::get()->push(
-        sev,
-        mod,
-        fmt::vformat(format, args)
-    );
+    if (!mod->isLoggingEnabled()) return;
+
+    auto nestCount = s_nestLevel * 2;
+    if (nestCount != 0) {
+        nestCount += s_nestCountOffset;
+    }
+
+    Logger::get()->push(sev, thread::getName(), mod->getName(), nestCount,
+        fmt::vformat(format, args));
 }
 
 
-Log::Log(Severity sev, Mod* mod, std::string&& content) :
-    m_sender(mod),
+Log::Log(Severity sev, std::string&& thread, std::string&& source, int32_t nestCount,
+    std::string&& content) :
     m_time(log_clock::now()),
     m_severity(sev),
+    m_thread(thread),
+    m_source(source),
+    m_nestCount(nestCount),
     m_content(content) {}
 
-Log::~Log() {}
+Log::~Log() = default;
 
 auto convertTime(auto timePoint) {
     // std::chrono::current_zone() isnt available on clang (android),
@@ -114,12 +126,8 @@ auto convertTime(auto timePoint) {
     return fmt::localtime(timeEpoch);
 }
 
-std::string Log::toString(bool logTime, int32_t nestCount) const {
-    std::string res;
-
-    if (logTime) {
-        res += fmt::format("{:%H:%M:%S}", convertTime(m_time));
-    }
+std::string Log::toString() const {
+    std::string res = fmt::format("{:%H:%M:%S}", convertTime(m_time));
 
     switch (m_severity.m_value) {
         case Severity::Debug:
@@ -139,17 +147,49 @@ std::string Log::toString(bool logTime, int32_t nestCount) const {
             break;
     }
 
-    auto senderName = m_sender ? m_sender->getName() : "Geode?";
+    auto nestCount = m_nestCount;
+    auto source = m_source;
+    auto thread = m_thread;
 
     if (nestCount != 0) {
-        nestCount -= static_cast<int32_t>(senderName.size());
+        nestCount -= static_cast<int32_t>(source.size() + thread.size());
     }
 
     if (nestCount < 0) {
-        senderName = fmt::format("{}>", senderName.substr(0, senderName.size() + nestCount - 1));
+        auto initSourceLength = static_cast<int32_t>(source.size());
+        auto initThreadLength = static_cast<int32_t>(thread.size());
+
+        auto needsCollapse = -nestCount;
+
+        if (initThreadLength == 0) {
+            auto sourceCollapse = needsCollapse;
+            auto sourceLength = std::max(initSourceLength - sourceCollapse, 2);
+            if (sourceLength < source.size())
+                source = fmt::format("{}>", source.substr(0, sourceLength - 1));
+        }
+        else {
+            auto sourceCollapse = needsCollapse / 2;
+            auto sourceLength = std::max(initSourceLength - sourceCollapse, 2);
+            sourceCollapse = initSourceLength - sourceLength;
+
+            auto threadCollapse = needsCollapse - sourceCollapse;
+            auto threadLength = std::max(initThreadLength - threadCollapse, 2);
+            threadCollapse = initThreadLength - threadLength;
+
+            sourceCollapse = needsCollapse - threadCollapse;
+            sourceLength = std::max(initSourceLength - sourceCollapse, 2);
+
+            if (sourceLength < source.size())
+                source = fmt::format("{}>", source.substr(0, sourceLength - 1));
+            if (threadLength < thread.size())
+                thread = fmt::format("{}>", thread.substr(0, threadLength - 1));
+        }
     }
 
-    res += fmt::format(" [{}]: ", senderName);
+    if (thread.empty())
+        res += fmt::format(" [{}]: ", source);
+    else
+        res += fmt::format(" [{}] [{}]: ", thread, source);
 
     for (int32_t i = 0; i < nestCount; i++) {
         res += " ";
@@ -160,20 +200,8 @@ std::string Log::toString(bool logTime, int32_t nestCount) const {
     return res;
 }
 
-log_clock::time_point Log::getTime() const {
-    return m_time;
-}
-
-Mod* Log::getSender() const {
-    return m_sender;
-}
-
 Severity Log::getSeverity() const {
     return m_severity;
-}
-
-std::string_view Log::getContent() const {
-    return m_content;
 }
 
 // Logger
@@ -188,35 +216,25 @@ void Logger::setup() {
 }
 
 std::mutex g_logMutex;
-void Logger::push(Severity sev, Mod* mod, std::string&& content) {
-    if (!mod->isLoggingEnabled()) return;
-
-    Log* log = nullptr;
+void Logger::push(Severity sev, std::string&& thread, std::string&& source, int32_t nestCount,
+    std::string&& content) {
+    Log* log;
     {
         std::lock_guard g(g_logMutex);
-        log = &m_logs.emplace_back(sev, mod, std::move(content));
+        log = &m_logs.emplace_back(sev, std::move(thread), std::move(source), nestCount,
+            std::move(content));
     }
-
-    auto nestCount = m_nestLevel * 2;
-    if (nestCount != 0) {
-        nestCount += m_nestCountOffset;
+    auto const logStr = log->toString();
+    {
+        std::lock_guard g(g_logMutex);
+        console::log(logStr, log->getSeverity());
+        m_logStream << logStr << std::endl;
     }
-
-    auto const logStr = log->toString(true, nestCount);
-
-    console::log(logStr, log->getSeverity());
-    m_logStream << logStr << std::endl;
 }
 
-void Logger::pushNest() {
-    if (m_nestLevel == 0)
-        m_nestCountOffset = static_cast<int32_t>(Mod::get()->getName().size());
-    m_nestLevel++;
-}
-
-void Logger::popNest() {
-    m_nestLevel--;
-}
+Nest::Nest(std::shared_ptr<Nest::Impl> impl) : m_impl(std::move(impl)) { }
+Nest::Impl::Impl(int32_t nestLevel, int32_t nestCountOffset) :
+    m_nestLevel(nestLevel), m_nestCountOffset(nestCountOffset) { }
 
 std::vector<Log> const& Logger::list() {
     return m_logs;
@@ -230,13 +248,24 @@ void Logger::clear() {
 // Misc
 
 std::string geode::log::generateLogName() {
-    return fmt::format("Geode {:%d %b %H.%M.%S}.log", convertTime(log_clock::now()));
+    return fmt::format("Geode {:%F %H.%M.%S}.log", convertTime(log_clock::now()));
 }
 
 void log::pushNest() {
-    Logger::get()->pushNest();
+    if (s_nestLevel == 0)
+        s_nestCountOffset = static_cast<int32_t>(Mod::get()->getName().size() + thread::getName().size());
+    s_nestLevel++;
 }
 
 void log::popNest() {
-    Logger::get()->popNest();
+    s_nestLevel--;
+}
+
+std::shared_ptr<Nest> log::saveNest() {
+    return std::make_shared<Nest>(std::make_shared<Nest::Impl>(s_nestLevel, s_nestCountOffset));
+}
+
+void log::loadNest(std::shared_ptr<Nest> const& nest) {
+    s_nestLevel = nest->m_impl->m_nestLevel;
+    s_nestCountOffset = nest->m_impl->m_nestCountOffset;
 }

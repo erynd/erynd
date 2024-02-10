@@ -20,7 +20,11 @@ std::string Mod::getName() const {
 }
 
 std::string Mod::getDeveloper() const {
-    return m_impl->getDeveloper();
+    return m_impl->getDevelopers().empty() ? "" : m_impl->getDevelopers().front();
+}
+
+std::vector<std::string> Mod::getDevelopers() const {
+    return m_impl->getDevelopers();
 }
 
 std::optional<std::string> Mod::getDescription() const {
@@ -133,8 +137,8 @@ std::optional<std::string> Mod::getLaunchArgument(std::string_view const name) c
     return m_impl->getLaunchArgument(name);
 }
 
-bool Mod::getLaunchBool(std::string_view const name) const {
-    return m_impl->getLaunchBool(name);
+bool Mod::getLaunchFlag(std::string_view const name) const {
+    return m_impl->getLaunchFlag(name);
 }
 
 Result<Hook*> Mod::claimHook(std::shared_ptr<Hook> hook) {

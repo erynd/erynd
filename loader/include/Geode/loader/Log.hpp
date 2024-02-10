@@ -1,10 +1,9 @@
 #pragma once
 
 #include "Types.hpp"
-#include "../utils/Result.hpp"
+#include "../platform/cplatform.h"
 
 #include <Geode/DefaultInclude.hpp>
-#include <Geode/utils/ranges.hpp>
 #include <ccTypes.h>
 #include <chrono>
 #include <ghc/fs_fwd.hpp>
@@ -12,11 +11,8 @@
 #include <fmt/core.h>
 // for formatting std::vector and such
 #include <fmt/ranges.h>
-// yet another macos std::filesystem L
-#ifndef GEODE_IS_MACOS
 // for std::optional
 #include <fmt/std.h>
-#endif
 
 namespace geode {
     // these are here because theyre special :-)
@@ -69,7 +65,6 @@ namespace ghc::filesystem {
 }
 
 namespace geode {
-#pragma warning(disable : 4251)
 
     class Mod;
     Mod* getMod();
@@ -109,5 +104,18 @@ namespace geode {
 
         GEODE_DLL void pushNest();
         GEODE_DLL void popNest();
+
+        class Nest final {
+        private:
+            class Impl;
+            std::shared_ptr<Nest::Impl> m_impl;
+            friend GEODE_DLL std::shared_ptr<Nest> saveNest();
+            friend GEODE_DLL void loadNest(std::shared_ptr<Nest> const& nest);
+        public:
+            explicit Nest(std::shared_ptr<Nest::Impl> impl);
+        };
+
+        [[nodiscard]] GEODE_DLL std::shared_ptr<Nest> saveNest();
+        GEODE_DLL void loadNest(std::shared_ptr<Nest> const& nest);
     }
 }

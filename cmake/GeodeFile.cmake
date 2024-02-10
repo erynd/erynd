@@ -13,6 +13,7 @@ else()
     execute_process(
         COMMAND ${GEODE_CLI} --version
         OUTPUT_VARIABLE GEODE_CLI_VERSION
+        COMMAND_ERROR_IS_FATAL ANY
     )
     # Remove trailing newline
     string(STRIP ${GEODE_CLI_VERSION} GEODE_CLI_VERSION)
@@ -54,10 +55,10 @@ function(setup_geode_mod proname)
     if (ANDROID)
         if (CMAKE_BUILD_TYPE STREQUAL "Release")
             add_custom_command(
-                TARGET "${PROJECT_NAME}" POST_BUILD
-                DEPENDS "${PROJECT_NAME}"
+                TARGET "${proname}" POST_BUILD
+                DEPENDS "${proname}"
                 COMMAND $<$<CONFIG:release>:${CMAKE_STRIP}>
-                ARGS -S $<TARGET_FILE:${PROJECT_NAME}>
+                ARGS -S $<TARGET_FILE:${proname}>
             )
         endif()
     endif()
@@ -112,11 +113,13 @@ function(setup_geode_mod proname)
             COMMAND ${GEODE_CLI} project check ${CMAKE_CURRENT_BINARY_DIR}
                 --externals ${GEODE_MODS_BEING_BUILT} ${DONT_UPDATE_INDEX_ARG}
             WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+            COMMAND_ERROR_IS_FATAL ANY
         )
     elseif (${GEODE_CLI_VERSION} VERSION_GREATER_EQUAL "1.4.0")
         execute_process(
             COMMAND ${GEODE_CLI} package setup ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR}
                 --externals ${GEODE_MODS_BEING_BUILT}
+            COMMAND_ERROR_IS_FATAL ANY
         )
     elseif (MOD_HAS_DEPS)
         message(FATAL_ERROR
@@ -199,7 +202,11 @@ function(setup_geode_mod proname)
                     file(GLOB libs ${dir}/*.dylib)
                     list(APPEND libs_to_link ${libs})
                 elseif (ANDROID)
-                    file(GLOB libs ${dir}/*.so)
+                    if (CMAKE_ANDROID_ARCH_ABI STREQUAL "arm64-v8a")
+                        file(GLOB libs ${dir}/*.android64.so)
+                    else()
+                        file(GLOB libs ${dir}/*.android32.so)
+                    endif()
                     list(APPEND libs_to_link ${libs})
                 else()
                     message(FATAL_ERROR "Library extension not defined on this platform")
@@ -289,6 +296,7 @@ function(package_geode_resources_now proname src dest header_dest)
     execute_process(
         COMMAND ${GEODE_CLI} package resources ${src} ${dest} --shut-up
         RESULT_VARIABLE GEODE_PACKAGE_RES
+        COMMAND_ERROR_IS_FATAL ANY
     )
 
     if (NOT GEODE_PACKAGE_RES EQUAL "0")

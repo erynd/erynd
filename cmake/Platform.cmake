@@ -24,7 +24,7 @@ elseif (GEODE_TARGET_PLATFORM STREQUAL "MacOS")
 	set(CMAKE_OSX_ARCHITECTURES "x86_64")
 
 	# only exists as a global property
-	set(CMAKE_OSX_DEPLOYMENT_TARGET 10.13)
+	set(CMAKE_OSX_DEPLOYMENT_TARGET 10.15)
 
 	find_package(CURL REQUIRED) 
 
@@ -41,6 +41,7 @@ elseif (GEODE_TARGET_PLATFORM STREQUAL "MacOS")
 
 	target_compile_definitions(${PROJECT_NAME} INTERFACE
 		-DCommentType=CommentTypeDummy
+		-DGL_SILENCE_DEPRECATION
 	)
 
 	set(GEODE_OUTPUT_NAME "Geode")

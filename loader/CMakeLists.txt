@@ -125,11 +125,67 @@ if (WIN32)
 	set(SOURCES ${SOURCES} ${CMAKE_CURRENT_BINARY_DIR}/info.rc)
 endif()
 
+
+if (ANDROID AND GEODE_USE_BREAKPAD)
+	CPMAddPackage(
+		NAME "Breakpad"
+		VERSION "2023.06.01"
+		GIT_REPOSITORY "https://chromium.googlesource.com/breakpad/breakpad.git"
+	)
+
+	if (Breakpad_ADDED)
+		# uses fetchcontent to store the library in an arbitrary path (the binary dir)
+		include(FetchContent)
+
+		FetchContent_Declare(lss
+			GIT_REPOSITORY https://chromium.googlesource.com/linux-syscall-support.git
+			GIT_TAG v2022.10.12
+			SOURCE_DIR ${Breakpad_BINARY_DIR}/src/third_party/lss
+		)
+
+		FetchContent_MakeAvailable(lss)
+
+		add_library(Breakpad STATIC
+			${Breakpad_SOURCE_DIR}/src/client/linux/crash_generation/crash_generation_client.cc
+			${Breakpad_SOURCE_DIR}/src/client/linux/dump_writer_common/thread_info.cc
+			${Breakpad_SOURCE_DIR}/src/client/linux/dump_writer_common/ucontext_reader.cc
+			${Breakpad_SOURCE_DIR}/src/client/linux/handler/exception_handler.cc
+			${Breakpad_SOURCE_DIR}/src/client/linux/handler/minidump_descriptor.cc
+			${Breakpad_SOURCE_DIR}/src/client/linux/log/log.cc
+			${Breakpad_SOURCE_DIR}/src/client/linux/microdump_writer/microdump_writer.cc
+			${Breakpad_SOURCE_DIR}/src/client/linux/minidump_writer/linux_dumper.cc
+			${Breakpad_SOURCE_DIR}/src/client/linux/minidump_writer/linux_ptrace_dumper.cc
+			${Breakpad_SOURCE_DIR}/src/client/linux/minidump_writer/minidump_writer.cc
+			${Breakpad_SOURCE_DIR}/src/client/linux/minidump_writer/pe_file.cc
+			${Breakpad_SOURCE_DIR}/src/client/minidump_file_writer.cc
+			${Breakpad_SOURCE_DIR}/src/common/convert_UTF.cc
+			${Breakpad_SOURCE_DIR}/src/common/md5.cc
+			${Breakpad_SOURCE_DIR}/src/common/string_conversion.cc
+			${Breakpad_SOURCE_DIR}/src/common/linux/breakpad_getcontext.S
+			${Breakpad_SOURCE_DIR}/src/common/linux/elfutils.cc
+			${Breakpad_SOURCE_DIR}/src/common/linux/file_id.cc
+			${Breakpad_SOURCE_DIR}/src/common/linux/guid_creator.cc
+			${Breakpad_SOURCE_DIR}/src/common/linux/linux_libc_support.cc
+			${Breakpad_SOURCE_DIR}/src/common/linux/memory_mapped_file.cc
+			${Breakpad_SOURCE_DIR}/src/common/linux/safe_readlink.cc
+		)
+
+		target_include_directories(Breakpad PUBLIC
+			${Breakpad_SOURCE_DIR}/src/common/android/include/
+			${Breakpad_SOURCE_DIR}/src/
+			${Breakpad_SOURCE_DIR}/src/common/android/include/
+
+			# add lss headers
+			${Breakpad_BINARY_DIR}/src/
+		)
+	endif()
+endif()
+
 add_library(${PROJECT_NAME} SHARED ${SOURCES})
 
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_20)
 
-make_directory("${GEODE_BIN_PATH}/nightly")
+file(MAKE_DIRECTORY "${GEODE_BIN_PATH}/nightly")
 
 # Prevent SDK from activating a loader build
 set_target_properties(${PROJECT_NAME} PROPERTIES
@@ -170,6 +226,12 @@ endif()
 if (ANDROID)
 	# needed to define some opengl functions
 	target_link_libraries(${PROJECT_NAME} EGL)
+
+	if (GEODE_USE_BREAKPAD)
+		target_compile_definitions(${PROJECT_NAME} PRIVATE -DGEODE_USE_BREAKPAD)
+		enable_language(ASM)
+		target_link_libraries(${PROJECT_NAME} Breakpad)
+	endif()
 endif()
 
 target_include_directories(${PROJECT_NAME} PRIVATE
@@ -207,6 +269,7 @@ if (NOT GEODE_BUILDING_DOCS)
 	set(MZ_BZIP2 Off CACHE INTERNAL "")
 	set(MZ_OPENSSL Off CACHE INTERNAL "")
 	set(MZ_LIBBSD Off CACHE INTERNAL "")
+	set(SKIP_INSTALL_ALL On CACHE INTERNAL "")
 	set(CMAKE_WARN_DEPRECATED OFF CACHE BOOL "" FORCE)
 	CPMAddPackage(
 		GITHUB_REPOSITORY zlib-ng/minizip-ng
@@ -285,6 +348,8 @@ if (APPLE)
 			${CMAKE_INSTALL_NAME_TOOL} -id \"/Library/MobileSubstrate/DynamicLibraries/Geode.dylib\"
 			$<TARGET_FILE:geode-loader>)
 	endif()
+
+	set(LAUNCHER_TARGET GeodeBootstrapper)
 elseif (WIN32)
 	add_subdirectory(launcher/windows)
 
@@ -294,6 +359,30 @@ elseif (WIN32)
 		# disable warnings about CCNode::setID
 		target_link_options(${PROJECT_NAME} PUBLIC /ignore:4217)
 	endif()
+
+	set(LAUNCHER_TARGET ProxyLoader Updater)
 endif()
 
 add_subdirectory(test)
+
+# Add install target on CLI >= 2.10.0 (which adds `geode profile path`)
+if (NOT GEODE_BUILDING_DOCS AND ${GEODE_CLI_VERSION} VERSION_GREATER_EQUAL "2.10.0")
+	execute_process(
+		COMMAND ${GEODE_CLI} profile path -d
+		OUTPUT_VARIABLE GEODE_PROFILE_GD_PATH
+		RESULT_VARIABLE GEODE_PROFILE_GD_PATH_RESULT
+	)
+	if (${GEODE_PROFILE_GD_PATH_RESULT} EQUAL 0)
+		string(STRIP ${GEODE_PROFILE_GD_PATH} GEODE_PROFILE_GD_PATH)
+		install(
+			TARGETS geode-loader ${LAUNCHER_TARGET}
+			RUNTIME
+			DESTINATION "${GEODE_PROFILE_GD_PATH}"
+		)
+		file(GLOB RESOURCE_FILES ${GEODE_BIN_PATH}/nightly/resources/*.*)
+		install(
+			FILES ${RESOURCE_FILES}
+			DESTINATION "${GEODE_PROFILE_GD_PATH}/geode/resources/geode.loader"
+		)
+	endif()
+endif()

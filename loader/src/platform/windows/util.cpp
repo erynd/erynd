@@ -6,6 +6,7 @@ using namespace geode::prelude;
 #include "nfdwin.hpp"
 #include <ghc/fs_fwd.hpp>
 #include <Windows.h>
+#include <processthreadsapi.h>
 #include <iostream>
 #include <ShlObj.h>
 #include <shlwapi.h>
@@ -192,7 +193,7 @@ ghc::filesystem::path dirs::getSaveDir() {
                 return std::filesystem::weakly_canonical(savePath.wstring()).wstring();
             }
         }
-        
+
         return std::filesystem::weakly_canonical(executablePath.parent_path().wstring()).wstring();
     }();
 
@@ -268,4 +269,56 @@ Result<> geode::hook::addObjcMethod(std::string const& className, std::string co
 }
 Result<void*> geode::hook::getObjcMethodImp(std::string const& className, std::string const& selectorName) {
     return Err("Wrong platform");
+}
+
+bool geode::utils::permission::getPermissionStatus(Permission permission) {
+    return true; // unimplemented
+}
+
+void geode::utils::permission::requestPermission(Permission permission, utils::MiniFunction<void(bool)> callback) {
+    callback(true); // unimplemented
+}
+
+#include "../../utils/thread.hpp"
+
+std::string geode::utils::thread::getDefaultName() {
+    return fmt::format("Thread #{}", GetCurrentThreadId());
+}
+
+// https://learn.microsoft.com/en-us/visualstudio/debugger/how-to-set-a-thread-name-in-native-code?view=vs-2022
+#pragma pack(push,8)
+typedef struct tagTHREADNAME_INFO {
+    DWORD dwType; // Must be 0x1000.
+    LPCSTR szName; // Pointer to name (in user addr space).
+    DWORD dwThreadID; // Thread ID (-1=caller thread).
+    DWORD dwFlags; // Reserved for future use, must be zero.
+} THREADNAME_INFO;
+#pragma pack(pop)
+
+// SetThreadDescription is pretty new, so the user's system might not have it
+// or it might only be accessible dynamically (see msdocs link above for more info)
+auto setThreadDesc = reinterpret_cast<decltype(&SetThreadDescription)>(GetProcAddress(GetModuleHandleA("Kernel32.dll"), "SetThreadDescription"));
+void obliterate(std::string const& name) {
+    // exception
+    THREADNAME_INFO info;
+    info.dwType = 0x1000;
+    info.szName = name.c_str();
+    info.dwThreadID = GetCurrentThreadId();
+    info.dwFlags = 0;
+#pragma warning(push)
+#pragma warning(disable: 6320 6322)
+    __try {
+        RaiseException(0x406d1388, 0, sizeof(info) / sizeof(ULONG_PTR), reinterpret_cast<ULONG_PTR*>(&info));
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER) { }
+#pragma warning(pop)
+}
+void geode::utils::thread::platformSetName(std::string const& name) {
+    // SetThreadDescription
+    if (setThreadDesc) {
+        auto res = setThreadDesc(GetCurrentThread(), string::utf8ToWide(name).c_str());
+        if (FAILED(res))
+            log::warn("SetThreadDescription failed ({}), using only fallback method.", res);
+    }
+    obliterate(name);
 }

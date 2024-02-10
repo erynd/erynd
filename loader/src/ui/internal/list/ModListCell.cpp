@@ -9,6 +9,7 @@
 #include <loader/LoaderImpl.hpp>
 #include "../info/TagNode.hpp"
 #include "../info/DevProfilePopup.hpp"
+#include "../info/ModDevsPopup.hpp"
 #include "ProblemsListPopup.hpp"
 
 template <class T>
@@ -140,7 +141,7 @@ void ModListCell::setupInfo(
         m_labelMenu->addChild(apiLabel);
     }
 
-    auto creatorStr = "by " + metadata.getDeveloper();
+    auto creatorStr = "by " + ModMetadata::formatDeveloperDisplayString(metadata.getDevelopers());
     auto creatorLabel = CCLabelBMFont::create(creatorStr.c_str(), "goldFont.fnt");
     creatorLabel->setScale(.43f);
     if (inactive) {
@@ -189,7 +190,15 @@ void ModListCell::updateCellLayout() {
 }
 
 void ModListCell::onViewDev(CCObject*) {
-    DevProfilePopup::create(this->getDeveloper(), m_layer)->show();
+    auto meta = this->getModMetadata();
+    if (meta.has_value()) {
+        if (meta.value().getDevelopers().size() == 1) {
+            DevProfilePopup::create(meta.value().getDevelopers().front(), m_layer)->show();
+        }
+        else {
+            ModDevsPopup::create(meta.value(), m_layer)->show();
+        }
+    }
 }
 
 bool ModListCell::init(ModListLayer* list, CCSize const& size) {
@@ -265,15 +274,7 @@ void ModCell::updateState() {
         m_enableToggle->m_onButton->setOpacity(!toggleable ? 100 : 255);
         m_enableToggle->m_onButton->setColor(!toggleable ? cc3x(155) : cc3x(255));
     }
-    bool hasProblems = false;
-    for (auto const& item : Loader::get()->getProblems()) {
-        if (!std::holds_alternative<Mod*>(item.cause) ||
-            std::get<Mod*>(item.cause) != m_mod ||
-            item.type <= LoadProblem::Type::Recommendation)
-            continue;
-        hasProblems = true;
-        break;
-    }
+    bool hasProblems = ModImpl::getImpl(m_mod)->hasProblems();
     m_unresolvedExMark->setVisible(hasProblems);
 
     this->updateCellLayout();
@@ -338,8 +339,8 @@ bool ModCell::init(
     return true;
 }
 
-std::string ModCell::getDeveloper() const {
-    return m_mod->getDeveloper();
+std::optional<ModMetadata> ModCell::getModMetadata() const {
+    return m_mod->getMetadata();
 }
 
 CCNode* ModCell::createLogo(CCSize const& size) {
@@ -496,9 +497,9 @@ void IndexItemCell::updateState() {
     this->updateCellLayout();
 }
 
-std::string IndexItemCell::getDeveloper() const {
-    if (m_item) return m_item->getMetadata().getDeveloper();
-    return m_item2.m_developer;
+std::optional<ModMetadata> IndexItemCell::getModMetadata() const {
+    if (m_item) return m_item->getMetadata();
+    return {};
 }
 
 CCNode* IndexItemCell::createLogo(CCSize const& size) {
@@ -605,8 +606,8 @@ InvalidGeodeFileCell* InvalidGeodeFileCell::create(
 
 void InvalidGeodeFileCell::updateState() {}
 
-std::string InvalidGeodeFileCell::getDeveloper() const {
-    return "";
+std::optional<ModMetadata> InvalidGeodeFileCell::getModMetadata() const {
+    return std::nullopt;
 }
 
 CCNode* InvalidGeodeFileCell::createLogo(CCSize const& size) {
@@ -728,8 +729,8 @@ ProblemsCell* ProblemsCell::create(
 
 void ProblemsCell::updateState() {}
 
-std::string ProblemsCell::getDeveloper() const {
-    return "";
+std::optional<ModMetadata> ProblemsCell::getModMetadata() const {
+    return std::nullopt;
 }
 
 CCNode* ProblemsCell::createLogo(CCSize const& size) {

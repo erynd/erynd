@@ -6,16 +6,23 @@
 #include <loader/LoaderImpl.hpp>
 #include <loader/console.hpp>
 #include <loader/updater.hpp>
+#include <Geode/utils/NodeIDs.hpp>
 
 using namespace geode::prelude;
 
 struct CustomLoadingLayer : Modify<CustomLoadingLayer, LoadingLayer> {
+    bool m_menuDisabled;
     CCLabelBMFont* m_smallLabel = nullptr;
     CCLabelBMFont* m_smallLabel2 = nullptr;
     int m_geodeLoadStep = 0;
     int m_totalMods = 0;
 
-    GEODE_FORWARD_COMPAT_DISABLE_HOOKS("Switching to fallback custom loading layer")
+    static void onModify(auto& self) {
+        if (!self.setHookPriority("LoadingLayer::init", geode::node_ids::GEODE_ID_PRIORITY)) {
+            log::warn("Failed to set LoadingLayer::init hook priority, node IDs may not work properly");
+        }
+        GEODE_FORWARD_COMPAT_DISABLE_HOOKS_INNER("Switching to fallback custom loading layer")
+    }
 
     void updateLoadedModsLabel() {
         auto allMods = Loader::get()->getAllMods();
@@ -30,11 +37,15 @@ struct CustomLoadingLayer : Modify<CustomLoadingLayer, LoadingLayer> {
     }
 
     void setSmallText(std::string const& text) {
-        m_fields->m_smallLabel->setString(text.c_str());
+        if (!m_fields->m_menuDisabled) {
+            m_fields->m_smallLabel->setString(text.c_str());
+        }
     }
 
     void setSmallText2(std::string const& text) {
-        m_fields->m_smallLabel2->setString(text.c_str());
+        if (!m_fields->m_menuDisabled) {
+            m_fields->m_smallLabel2->setString(text.c_str());
+        }
     }
 
     // hook
@@ -43,7 +54,13 @@ struct CustomLoadingLayer : Modify<CustomLoadingLayer, LoadingLayer> {
 
         if (!LoadingLayer::init(fromReload)) return false;
 
+        NodeIDs::provideFor(this);
+
         m_fields->m_totalMods = Loader::get()->getAllMods().size();
+        m_fields->m_menuDisabled = Loader::get()->getLaunchFlag("disable-custom-menu");
+        if (m_fields->m_menuDisabled) {
+            return true;
+        }
 
         auto winSize = CCDirector::sharedDirector()->getWinSize();
 
@@ -186,12 +203,21 @@ struct CustomLoadingLayer : Modify<CustomLoadingLayer, LoadingLayer> {
 };
 
 struct FallbackCustomLoadingLayer : Modify<FallbackCustomLoadingLayer, CCLayer> {
-    GEODE_FORWARD_COMPAT_ENABLE_HOOKS("")
+    static void onModify(auto& self) {
+        GEODE_FORWARD_COMPAT_ENABLE_HOOKS_INNER("")
+        else if (!self.setHookPriority("CCLayer::init", geode::node_ids::GEODE_ID_PRIORITY)) {
+            log::warn("Failed to set CCLayer::init hook priority, node IDs may not work properly");
+        }
+    }
+
     bool init() {
         if (!CCLayer::init())
             return false;
-        if (!typeinfo_cast<LoadingLayer*>(this))
+        auto* self = typeinfo_cast<LoadingLayer*>(this);
+        if (!self)
             return true;
+
+        NodeIDs::provideFor(self);
 
         auto winSize = CCDirector::sharedDirector()->getWinSize();
 

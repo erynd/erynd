@@ -51,6 +51,7 @@ struct CustomMenuLayer : Modify<CustomMenuLayer, MenuLayer> {
         GEODE_FORWARD_COMPAT_DISABLE_HOOKS_INNER("MenuLayer stuff disabled")
     }
 
+    bool m_menuDisabled;
     CCSprite* m_geodeButton;
 
     bool init() {
@@ -62,41 +63,41 @@ struct CustomMenuLayer : Modify<CustomMenuLayer, MenuLayer> {
 
         auto winSize = CCDirector::sharedDirector()->getWinSize();
 
+        m_fields->m_menuDisabled = Loader::get()->getLaunchFlag("disable-custom-menu");
+
         // add geode button
-
-        m_fields->m_geodeButton = CircleButtonSprite::createWithSpriteFrameName(
-            "geode-logo-outline-gold.png"_spr,
-            1.0f,
-            CircleBaseColor::Green,
-            CircleBaseSize::MediumAlt
-        );
-        auto geodeBtnSelector = &CustomMenuLayer::onGeode;
-        if (!m_fields->m_geodeButton) {
-            geodeBtnSelector = &CustomMenuLayer::onMissingTextures;
-            m_fields->m_geodeButton = ButtonSprite::create("!!");
-        }
-
-        auto bottomMenu = static_cast<CCMenu*>(this->getChildByID("bottom-menu"));
-
-        auto btn = CCMenuItemSpriteExtra::create(
-            m_fields->m_geodeButton, this,
-            static_cast<SEL_MenuHandler>(geodeBtnSelector)
-        );
-        btn->setID("geode-button"_spr);
-        bottomMenu->addChild(btn);
-
-        bottomMenu->updateLayout();
-
-        auto input = InputNode::create(200.f, "Search");
-        input->setPosition(winSize.width / 2, winSize.height - 20.0f);
-        input->setID("search-input");
-        input->setAnchorPoint({ 0.5f, 0.5f });
-        this->addChild(input);
-
-        if (auto node = this->getChildByID("settings-gamepad-icon")) {
-            node->setPositionX(
-                bottomMenu->getChildByID("settings-button")->getPositionX() + winSize.width / 2
+        if (!m_fields->m_menuDisabled) {
+            m_fields->m_geodeButton = CircleButtonSprite::createWithSpriteFrameName(
+                "geode-logo-outline-gold.png"_spr,
+                1.0f,
+                CircleBaseColor::Green,
+                CircleBaseSize::MediumAlt
             );
+            auto geodeBtnSelector = &CustomMenuLayer::onGeode;
+            if (!m_fields->m_geodeButton) {
+                geodeBtnSelector = &CustomMenuLayer::onMissingTextures;
+                m_fields->m_geodeButton = ButtonSprite::create("!!");
+            }
+
+            auto bottomMenu = static_cast<CCMenu*>(this->getChildByID("bottom-menu"));
+
+            auto btn = CCMenuItemSpriteExtra::create(
+                m_fields->m_geodeButton, this,
+                static_cast<SEL_MenuHandler>(geodeBtnSelector)
+            );
+            btn->setID("geode-button"_spr);
+            bottomMenu->addChild(btn);
+            bottomMenu->setContentSize({ winSize.width / 2, bottomMenu->getScaledContentSize().height });
+
+            bottomMenu->updateLayout();
+
+            this->fixSocialMenu();
+
+            if (auto node = this->getChildByID("settings-gamepad-icon")) {
+                node->setPositionX(
+                    bottomMenu->getChildByID("settings-button")->getPositionX() + winSize.width / 2
+                );
+            }
         }
 
         // show if some mods failed to load
@@ -174,7 +175,7 @@ struct CustomMenuLayer : Modify<CustomMenuLayer, MenuLayer> {
         }
 
         // update mods index
-        if (!INDEX_UPDATE_NOTIF && !Index::get()->hasTriedToUpdate()) {
+        if (!m_fields->m_menuDisabled && !INDEX_UPDATE_NOTIF && !Index::get()->hasTriedToUpdate()) {
             this->addChild(EventListenerNode<IndexUpdateFilter>::create(
                 this, &CustomMenuLayer::onIndexUpdate
             ));
@@ -191,6 +192,64 @@ struct CustomMenuLayer : Modify<CustomMenuLayer, MenuLayer> {
         return true;
     }
 
+    void fixSocialMenu() {
+        // I did NOT have fun doing this
+        auto socialMenu = static_cast<CCMenu*>(this->getChildByID("social-media-menu"));
+        socialMenu->ignoreAnchorPointForPosition(false);
+        socialMenu->setAnchorPoint({0.0f, 0.0f});
+        socialMenu->setPosition({13.f, 13.f});
+
+        auto robtopButton = static_cast<CCMenuItemSpriteExtra*>(socialMenu->getChildByID("robtop-logo-button"));
+        robtopButton->setPosition(robtopButton->getScaledContentSize() / 2);
+
+        float horizontalGap = 3.5f;
+        float verticalGap = 5.0f;
+        auto facebookButton = static_cast<CCMenuItemSpriteExtra*>(socialMenu->getChildByID("facebook-button"));
+        facebookButton->setPosition({ 
+            facebookButton->getScaledContentSize().width / 2,
+            robtopButton->getScaledContentSize().height + verticalGap + facebookButton->getScaledContentSize().height / 2
+        });
+
+        auto twitterButton = static_cast<CCMenuItemSpriteExtra*>(socialMenu->getChildByID("twitter-button"));
+        twitterButton->setPosition({
+            facebookButton->getScaledContentSize().width + horizontalGap + twitterButton->getScaledContentSize().width / 2,
+            robtopButton->getScaledContentSize().height + verticalGap + twitterButton->getScaledContentSize().height / 2
+        });
+
+        auto youtubeButton = static_cast<CCMenuItemSpriteExtra*>(socialMenu->getChildByID("youtube-button"));
+        youtubeButton->setPosition({
+            twitterButton->getPositionX() + twitterButton->getScaledContentSize().width / 2 + horizontalGap + youtubeButton->getScaledContentSize().width / 2,
+            robtopButton->getScaledContentSize().height + verticalGap + youtubeButton->getScaledContentSize().height / 2
+        });
+
+        auto twitchButton = static_cast<CCMenuItemSpriteExtra*>(socialMenu->getChildByID("twitch-button"));
+        twitchButton->setPosition({
+            youtubeButton->getPositionX() + youtubeButton->getScaledContentSize().width / 2 + horizontalGap + twitchButton->getScaledContentSize().width / 2,
+            robtopButton->getScaledContentSize().height + verticalGap + twitchButton->getScaledContentSize().height / 2
+        });
+
+        auto discordButton = static_cast<CCMenuItemSpriteExtra*>(socialMenu->getChildByID("discord-button"));
+        discordButton->setPosition({
+            twitchButton->getPositionX(),
+            discordButton->getScaledContentSize().height / 2
+        });
+
+        socialMenu->setContentSize({
+            discordButton->getPositionX() + discordButton->getScaledContentSize().width / 2,
+            facebookButton->getPositionY() + facebookButton->getScaledContentSize().height / 2
+        });
+
+        auto bottomMenu = static_cast<CCMenu*>(this->getChildByID("bottom-menu"));
+        float spacing = 5.0f;
+        float buttonMenuLeftMargin = bottomMenu->getPositionX() - bottomMenu->getScaledContentSize().width * bottomMenu->getAnchorPoint().x;
+        float overlap = (socialMenu->getPositionX() + socialMenu->getScaledContentSize().width) - buttonMenuLeftMargin + spacing;
+        if (overlap > 0) {
+            float neededContentSize = buttonMenuLeftMargin - spacing - socialMenu->getPositionX();
+            float neededSize = neededContentSize * socialMenu->getScale() / socialMenu->getScaledContentSize().width;
+            socialMenu->setScale(neededSize);
+        }
+    }
+
     void onIndexUpdate(IndexUpdateEvent* event) {
         if (
             std::holds_alternative<UpdateFinished>(event->status) ||
@@ -201,7 +260,7 @@ struct CustomMenuLayer : Modify<CustomMenuLayer, MenuLayer> {
     }
 
     void addUpdateIndicator() {
-        if (Index::get()->areUpdatesAvailable()) {
+        if (!m_fields->m_menuDisabled && Index::get()->areUpdatesAvailable()) {
             auto icon = CCSprite::createWithSpriteFrameName("updates-available.png"_spr);
             icon->setPosition(
                 m_fields->m_geodeButton->getContentSize() - CCSize { 10.f, 10.f }

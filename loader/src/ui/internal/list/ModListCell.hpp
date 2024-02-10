@@ -41,7 +41,7 @@ protected:
 public:
     virtual void updateState() = 0;
     virtual CCNode* createLogo(CCSize const& size) = 0;
-    virtual std::string getDeveloper() const = 0;
+    virtual std::optional<ModMetadata> getModMetadata() const = 0;
     
     void disableDeveloperButton();
 };
@@ -75,7 +75,7 @@ public:
 
     void updateState() override;
     CCNode* createLogo(CCSize const& size) override;
-    std::string getDeveloper() const override;
+    std::optional<ModMetadata> getModMetadata() const override;
 };
 
 /**
@@ -120,7 +120,7 @@ public:
 
     void updateState() override;
     CCNode* createLogo(CCSize const& size) override;
-    std::string getDeveloper() const override;
+    std::optional<ModMetadata> getModMetadata() const override;
 };
 
 /**
@@ -150,7 +150,7 @@ public:
 
     void updateState() override;
     CCNode* createLogo(CCSize const& size) override;
-    std::string getDeveloper() const override;
+    std::optional<ModMetadata> getModMetadata() const override;
 };
 
 /**
@@ -179,5 +179,5 @@ public:
 
     void updateState() override;
     CCNode* createLogo(CCSize const& size) override;
-    std::string getDeveloper() const override;
+    std::optional<ModMetadata> getModMetadata() const override;
 };

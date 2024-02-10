@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.21 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.25 FATAL_ERROR)
 
 set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build libraries static" FORCE)
 
@@ -9,6 +9,8 @@ if (GEODE_BUILDING_DOCS)
 	set(GEODE_DISABLE_PRECOMPILED_HEADERS On)
 	set(GEODE_DONT_BUILD_TEST_MODS On)
 endif()
+
+option(GEODE_USE_BREAKPAD "Enables the use of the Breakpad library for crash dumps." ON)
 
 # Read version
 file(READ VERSION GEODE_VERSION)
@@ -45,6 +47,35 @@ else()
 	message(STATUS "Version: ${GEODE_VERSION}")
 endif()
 
+include(cmake/CPM.cmake)
+
+# Allow users to have their own copy of bindings that can be overwritten with a CMake option.
+# If the option is not provided, by default just clone bindings with CPM and use that
+if (DEFINED ENV{GEODE_BINDINGS_REPO_PATH})
+	set(temp $ENV{GEODE_BINDINGS_REPO_PATH})
+	# this is so stupid i hate windows paths
+	string(REPLACE "\\" "/" GEODE_BINDINGS_REPO_PATH ${temp})
+endif()
+
+if (NOT GEODE_BINDINGS_REPO_PATH)
+	message(STATUS
+		"No override path for bindings provided, using CPM to clone default. "
+		"If you would like to use a separate clone of the bindings repo "
+		"(for example in order to be able to efficiently change and "
+		"contribute new bindings) then set GEODE_BINDINGS_REPO_PATH to where you have "
+		"cloned the repository (system environment variables are supported)."
+	)
+	CPMAddPackage(NAME "bindings"
+		GITHUB_REPOSITORY "geode-sdk/bindings"
+		GIT_TAG "main"
+		DOWNLOAD_ONLY YES
+		NO_CACHE YES
+	)
+	set(GEODE_BINDINGS_REPO_PATH ${bindings_SOURCE_DIR})
+else()
+	message(STATUS "Using ${GEODE_BINDINGS_REPO_PATH} for bindings repo")
+endif()
+
 project(geode-sdk VERSION ${GEODE_VERSION} LANGUAGES CXX C)
 
 add_library(${PROJECT_NAME} INTERFACE)
@@ -67,14 +98,12 @@ set_target_properties(${PROJECT_NAME} PROPERTIES CMAKE_CONFIGURE_DEPENDS VERSION
 
 target_compile_definitions(${PROJECT_NAME} INTERFACE -DPROJECT_NAME=${CMAKE_PROJECT_NAME})
 
-set(GEODE_CODEGEN_PATH ${CMAKE_CURRENT_BINARY_DIR}/codegenned)
 set(GEODE_BIN_PATH ${CMAKE_CURRENT_SOURCE_DIR}/bin)
 set(GEODE_LOADER_PATH ${CMAKE_CURRENT_SOURCE_DIR}/loader)
 set(GEODE_ROOT_PATH ${CMAKE_CURRENT_SOURCE_DIR})
 
 include(cmake/Platform.cmake)
 include(cmake/GeodeFile.cmake)
-include(cmake/CPM.cmake)
 
 if (NOT DEFINED GEODE_GD_VERSION)
 	if (${GEODE_TARGET_PLATFORM} STREQUAL "Win32")
@@ -95,10 +124,11 @@ if (WIN32)
 	# This allows you to compile in debug mode
 	add_compile_definitions(_HAS_ITERATOR_DEBUGGING=0)
 	add_definitions(-D_HAS_ITERATOR_DEBUGGING=0)
+ 	target_link_libraries(${PROJECT_NAME} INTERFACE delayimp)
 endif()
 
 set(MAT_JSON_AS_INTERFACE ON)
-CPMAddPackage("gh:geode-sdk/json#3232877")
+CPMAddPackage("gh:geode-sdk/json#7e4dfae")
 CPMAddPackage("gh:fmtlib/fmt#10.1.1")
 CPMAddPackage("gh:gulrak/filesystem#3e5b930")
 
@@ -116,7 +146,7 @@ if (PROJECT_IS_TOP_LEVEL AND NOT GEODE_BUILDING_DOCS)
 	set(TULIP_LINK_SOURCE ON)
 endif()
 set(CMAKE_WARN_DEPRECATED OFF CACHE BOOL "" FORCE)
-CPMAddPackage("gh:geode-sdk/TulipHook#3e32b0c")
+CPMAddPackage("gh:geode-sdk/TulipHook#b5e881a")
 set(CMAKE_WARN_DEPRECATED ON CACHE BOOL "" FORCE)
 
 # Silence warnings from dependencies
@@ -130,134 +160,31 @@ endif()
 
 target_sources(${PROJECT_NAME} INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/entry.cpp)
 
-# Filesystem implementation in a separate target because i couldnt disable pch
+# Filesystem implementation in a separate target because i couldnt disable pch
 add_library(GeodeFilesystemImpl ${CMAKE_CURRENT_SOURCE_DIR}/FilesystemImpl.cpp)
 target_compile_features(GeodeFilesystemImpl PUBLIC cxx_std_20)
 target_link_libraries(GeodeFilesystemImpl PUBLIC ghc_filesystem)
 
-# Allow users to have their own copy of bindings that can be overwritten with a CMake option.
-# If the option is not provided, by default just clone bindings with CPM and use that
-if (DEFINED ENV{GEODE_BINDINGS_REPO_PATH})
-	set(temp $ENV{GEODE_BINDINGS_REPO_PATH})
-	# this is so stupid i hate windows paths
-	string(REPLACE "\\" "/" GEODE_BINDINGS_REPO_PATH ${temp})
-endif()
-
-if (NOT GEODE_BINDINGS_REPO_PATH)
-	message(STATUS 
-		"No override path for bindings provided, using CPM to clone default. "
-		"If you would like to use a separate clone of the bindings repo "
-		"(for example in order to be able to efficiently change and "
-		"contribute new bindings) then set GEODE_BINDINGS_REPO_PATH to where you have "
-		"cloned the repository (system environment variables are supported)."
-	)
-	CPMAddPackage("gh:geode-sdk/bindings#main")
-	set(GEODE_BINDINGS_REPO_PATH ${GeodeBindings_SOURCE_DIR})
-else()
-	message(STATUS "Using ${GEODE_BINDINGS_REPO_PATH} for bindings repo")
-endif()
-
-include(ExternalProject)
-set(GEODE_CODEGEN_BINARY_OUT ${CMAKE_CURRENT_BINARY_DIR}/codegen)
-ExternalProject_Add(CodegenProject
-	BUILD_ALWAYS ON
-	SOURCE_DIR ${GEODE_BINDINGS_REPO_PATH}
-	# manually set configure command as to not inherit generator used by geode,
-	# this should hopefully fix generator cache mismatch between different projects, however
-	# it causes a warning to be shown every time. if you know a better solution please tell us ok thx
-	CONFIGURE_COMMAND ${CMAKE_COMMAND} ${GEODE_CODEGEN_CMAKE_ARGS} -DCMAKE_INSTALL_PREFIX:STRING=${GEODE_CODEGEN_BINARY_OUT}
-		-DCMAKE_C_COMPILER_LAUNCHER=${CMAKE_C_COMPILER_LAUNCHER} -DCMAKE_CXX_COMPILER_LAUNCHER=${CMAKE_CXX_COMPILER_LAUNCHER}
-		-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
-		-S <SOURCE_DIR> -B <BINARY_DIR>
-	BUILD_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> --config $<CONFIGURATION>
-	INSTALL_COMMAND ${CMAKE_COMMAND} --install <BINARY_DIR> --config $<CONFIGURATION>
-)
-
-if (NOT GEODE_BINDINGS_PATH)
-	set(GEODE_BINDINGS_PATH ${GEODE_BINDINGS_REPO_PATH}/bindings/${GEODE_GD_VERSION})
-endif()
-
-file(GLOB CODEGEN_DEPENDS CONFIGURE_DEPENDS 
-	${GEODE_BINDINGS_PATH}/*.bro
-	${GEODE_BINDINGS_REPO_PATH}/codegen/src/*.cpp
-	${GEODE_BINDINGS_REPO_PATH}/codegen/src/*.hpp
-)
-
-
-file(GLOB CODEGEN_OUTPUTS CONFIGURE_DEPENDS 
-	${GEODE_CODEGEN_PATH}/Geode/binding/*.hpp
-)
-
-add_custom_command(
-	DEPENDS ${CODEGEN_DEPENDS}
-	DEPENDS CodegenProject
-	COMMAND ${GEODE_CODEGEN_BINARY_OUT}/Codegen ${GEODE_TARGET_PLATFORM} ${GEODE_BINDINGS_PATH} ${GEODE_CODEGEN_PATH}
-	COMMAND echo codegen > ${GEODE_CODEGEN_PATH}/.stamp
-	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-	COMMENT "Run Codegen"
-	OUTPUT ${GEODE_CODEGEN_PATH}/Geode/GeneratedSource.cpp ${GEODE_CODEGEN_PATH}/Geode/GeneratedAddress.cpp ${GEODE_CODEGEN_PATH}/.stamp ${CODEGEN_OUTPUTS}
-)
-
-add_custom_target(CodegenRun
-	DEPENDS ${GEODE_CODEGEN_PATH}/.stamp
-)
-
-add_dependencies(${PROJECT_NAME} CodegenRun)
-
-# Hacky way to supress the not generated error
-if (NOT EXISTS ${GEODE_CODEGEN_PATH}/Geode/GeneratedSource.cpp)
-	make_directory(${GEODE_CODEGEN_PATH})
-	make_directory(${GEODE_CODEGEN_PATH}/Geode)
-	file(TOUCH ${GEODE_CODEGEN_PATH}/Geode/GeneratedSource.cpp)
-endif()
-
-if (NOT EXISTS ${GEODE_CODEGEN_PATH}/Geode/GeneratedAddress.cpp)
-	make_directory(${GEODE_CODEGEN_PATH})
-	make_directory(${GEODE_CODEGEN_PATH}/Geode)
-	file(TOUCH ${GEODE_CODEGEN_PATH}/Geode/GeneratedAddress.cpp)
-endif()
-
-add_library(GeodeCodegenSources ${GEODE_CODEGEN_PATH}/Geode/GeneratedSource.cpp ${GEODE_CODEGEN_PATH}/Geode/GeneratedAddress.cpp)
-target_link_directories(GeodeCodegenSources PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/loader/include/link)
-target_link_libraries(GeodeCodegenSources PRIVATE ghc_filesystem GeodeFilesystemImpl fmt TulipHookInclude mat-json)
-target_include_directories(GeodeCodegenSources PRIVATE
-	${GEODE_CODEGEN_PATH}
-	${GEODE_LOADER_PATH}/include
-	${GEODE_LOADER_PATH}/include/Geode/cocos/include
-	${GEODE_LOADER_PATH}/include/Geode/cocos/extensions
-	${GEODE_LOADER_PATH}/include/Geode/fmod
-)
-set_target_properties(GeodeCodegenSources PROPERTIES CXX_VISIBILITY_PRESET hidden)
-target_compile_features(GeodeCodegenSources PUBLIC cxx_std_20)
-
-if (APPLE)
-	target_compile_options(GeodeCodegenSources PUBLIC -ffunction-sections -fdata-sections)
-	target_link_options(GeodeCodegenSources PUBLIC -dead_strip)
-elseif(ANDROID)
-	target_compile_options(GeodeCodegenSources PUBLIC -ffunction-sections -fdata-sections)
-	target_link_options(GeodeCodegenSources PUBLIC -Wl,--gc-sections)
-endif()
+add_subdirectory(${GEODE_BINDINGS_REPO_PATH} ${CMAKE_BINARY_DIR}/bindings)
 
 if (NOT GEODE_DISABLE_PRECOMPILED_HEADERS)
-	target_precompile_headers(GeodeCodegenSources INTERFACE
+	target_precompile_headers(GeodeBindings INTERFACE
 		"${GEODE_LOADER_PATH}/include/Geode/Bindings.hpp"
 	)
 endif()
 
-target_include_directories(${PROJECT_NAME} INTERFACE
-	${GEODE_CODEGEN_PATH}
+target_include_directories(GeodeBindings PUBLIC
 	${GEODE_LOADER_PATH}/include
 	${GEODE_LOADER_PATH}/include/Geode/cocos/include
 	${GEODE_LOADER_PATH}/include/Geode/cocos/extensions
 	${GEODE_LOADER_PATH}/include/Geode/fmod
 )
-target_link_directories(${PROJECT_NAME} INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/loader/include/link)
-
-target_link_libraries(${PROJECT_NAME} INTERFACE ghc_filesystem fmt TulipHookInclude GeodeCodegenSources mat-json GeodeFilesystemImpl)
-
+target_link_directories(GeodeBindings PUBLIC ${GEODE_LOADER_PATH}/include/link)
+target_link_libraries(GeodeBindings PUBLIC ghc_filesystem fmt TulipHookInclude mat-json GeodeFilesystemImpl)
+target_link_libraries(${PROJECT_NAME} INTERFACE GeodeBindings)
 
 if (NOT EXISTS ${GEODE_BIN_PATH})
-	make_directory(${GEODE_BIN_PATH})
+	file(MAKE_DIRECTORY ${GEODE_BIN_PATH})
 endif()
 
 if (NOT EXISTS ${GEODE_BIN_PATH}/${PROJECT_VERSION} AND EXISTS ${GEODE_BIN_PATH}/nightly/)
@@ -270,17 +197,18 @@ else()
 	set(GEODE_PLATFORM_BIN_PATH ${GEODE_BIN_PATH}/${PROJECT_VERSION}/${GEODE_PLATFORM_BINARY})
 endif()
 
-
 if (PROJECT_IS_TOP_LEVEL)
 	add_subdirectory(loader)
 	target_link_libraries(${PROJECT_NAME} INTERFACE geode-loader)
 elseif(EXISTS ${GEODE_PLATFORM_BIN_PATH})
 	target_link_libraries(${PROJECT_NAME} INTERFACE "${GEODE_PLATFORM_BIN_PATH}")
-	target_precompile_headers(${PROJECT_NAME} INTERFACE
-		"${GEODE_LOADER_PATH}/include/Geode/DefaultInclude.hpp"
-		"${GEODE_LOADER_PATH}/include/Geode/Geode.hpp"
-		# please stop adding modify here its not here because it makes windows compilation take longer than geode 1.0 release date
-	)
+	if(NOT GEODE_DISABLE_PRECOMPILED_HEADERS)
+		target_precompile_headers(${PROJECT_NAME} INTERFACE
+			"${GEODE_LOADER_PATH}/include/Geode/DefaultInclude.hpp"
+			"${GEODE_LOADER_PATH}/include/Geode/Geode.hpp"
+			# please stop adding modify here its not here because it makes windows compilation take longer than geode 1.0 release date
+		)
+	endif()
 else()
 	message(FATAL_ERROR
 		"No valid loader binary to link to! Install prebuilts with `geode sdk install-binaries`, "

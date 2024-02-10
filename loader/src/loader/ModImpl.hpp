@@ -64,7 +64,11 @@ namespace geode {
 
         std::unordered_map<std::string, char const*> m_expandedSprites;
 
+        bool m_isCurrentlyLoading = false;
+
         ModRequestedAction m_requestedAction = ModRequestedAction::None;
+
+        std::vector<LoadProblem> m_problems;
 
         Impl(Mod* self, ModMetadata const& metadata);
         ~Impl();
@@ -81,7 +85,7 @@ namespace geode {
 
         std::string getID() const;
         std::string getName() const;
-        std::string getDeveloper() const;
+        std::vector<std::string> getDevelopers() const;
         std::optional<std::string> getDescription() const;
         std::optional<std::string> getDetails() const;
         ghc::filesystem::path getPackagePath() const;
@@ -113,12 +117,11 @@ namespace geode {
         SettingValue* getSetting(std::string_view const key) const;
         void registerCustomSetting(std::string_view const key, std::unique_ptr<SettingValue> value);
 
-        std::string getLaunchArgPrefix() const;
-        std::string getLaunchArgName(std::string_view const name) const;
+        std::string getLaunchArgumentName(std::string_view const name) const;
         std::vector<std::string> getLaunchArgumentNames() const;
         bool hasLaunchArgument(std::string_view const name) const;
         std::optional<std::string> getLaunchArgument(std::string_view const name) const;
-        bool getLaunchBool(std::string_view const name) const;
+        bool getLaunchFlag(std::string_view const name) const;
 
         Result<Hook*> claimHook(std::shared_ptr<Hook> hook);
         Result<> disownHook(Hook* hook);
@@ -149,7 +152,11 @@ namespace geode {
         bool isLoggingEnabled() const;
         void setLoggingEnabled(bool enabled);
 
+        std::vector<LoadProblem> getProblems() const;
+
+        bool hasProblems() const;
         bool shouldLoad() const;
+        bool isCurrentlyLoading() const;
     };
 
     class ModImpl : public Mod::Impl {

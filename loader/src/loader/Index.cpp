@@ -321,6 +321,8 @@ void Index::Impl::downloadIndex(std::string commitHash) {
         .into(targetFile)
         .then([this, targetFile, commitHash](auto) {
             std::thread([=, this]() {
+                thread::setName("Index Update");
+
                 auto targetDir = dirs::getIndexDir() / "v0";
                 // delete old unzipped index
                 std::error_code ec;
@@ -338,8 +340,10 @@ void Index::Impl::downloadIndex(std::string commitHash) {
                 auto unzip = file::Unzip::intoDir(targetFile, targetDir, true)
                     .expect("Unable to unzip new index");
                 if (!unzip) {
-                    Loader::get()->queueInMainThread([unzip] {
-                        IndexUpdateEvent(UpdateFailed(unzip.unwrapErr())).post();
+                    auto const err = unzip.unwrapErr();
+                    log::error("Failed to unzip latest index: {}", err);
+                    Loader::get()->queueInMainThread([err] {
+                        IndexUpdateEvent(UpdateFailed(err)).post();
                     });
                     return;
                 }
@@ -355,6 +359,7 @@ void Index::Impl::downloadIndex(std::string commitHash) {
             }).detach();
         })
         .expect([](std::string const& err) {
+            log::error("Error downloading latest index: {}", err);
             IndexUpdateEvent(UpdateFailed(fmt::format("Error downloading: {}", err))).post();
         })
         .progress([](auto&, double now, double total) {
@@ -373,6 +378,7 @@ void Index::Impl::downloadIndex(std::string commitHash) {
 void Index::Impl::checkForUpdates() {
     if (m_isUpToDate) {
         std::thread([this](){
+            thread::setName("Index Update");
             this->updateFromLocalTree();
         }).detach();
         return;
@@ -403,7 +409,10 @@ void Index::Impl::checkForUpdates() {
                 // make sure the downloaded local copy actually exists
                 ghc::filesystem::exists(dirs::getIndexDir() / "v0" / "config.json")
             ) {
-                this->updateFromLocalTree();
+                std::thread([this](){
+                    thread::setName("Index Update");
+                    this->updateFromLocalTree();
+                }).detach();
             }
             // otherwise save hash and download source
             else {
@@ -411,6 +420,7 @@ void Index::Impl::checkForUpdates() {
             }
         })
         .expect([](std::string const& err) {
+            log::error("Failed to fetch index: {}", err);
             IndexUpdateEvent(
                 UpdateFailed(fmt::format("Error checking for updates: {}", err))
             ).post();
@@ -476,6 +486,7 @@ void Index::Impl::updateFromLocalTree() {
         IndexUpdateEvent(UpdateFinished()).post();
     });
 
+    log::debug("Done");
     log::popNest();
 }
 
@@ -544,7 +555,7 @@ std::vector<IndexItemHandle> Index::getItemsByDeveloper(
     std::vector<IndexItemHandle> res;
     for (auto& items : map::values(m_impl->m_items)) {
         for (auto& item : items) {
-            if (item.second->getMetadata().getDeveloper() == name) {
+            if (ranges::contains(item.second->getMetadata().getDevelopers(), name)) {
                 res.push_back(item.second);
             }
         }
@@ -675,9 +686,10 @@ Result<> Index::canInstall(IndexItemHandle item) const {
             return Err(
                 "Dependency {} version {} not found in the index! Likely "
                 "reason is that the version of the dependency this mod "
-                "depends on is not available. Please let the developer "
+                "depends on is not available. Please let the developer(s) "
                 "of the mod ({}) know!",
-                dep.id, dep.version.toString(), item->getMetadata().getDeveloper()
+                dep.id, dep.version.toString(),
+                ranges::join(item->getMetadata().getDevelopers(), ", ")
             );
         }
     }
@@ -725,9 +737,10 @@ Result<IndexInstallList> Index::getInstallList(IndexItemHandle item) const {
             return Err(
                 "Dependency {} version {} not found in the index! Likely "
                 "reason is that the version of the dependency this mod "
-                "depends on is not available. Please let the developer "
+                "depends on is not available. Please let the developer(s) "
                 "of the mod ({}) know!",
-                dep.id, dep.version.toString(), item->getMetadata().getDeveloper()
+                dep.id, dep.version.toString(),
+                ranges::join(item->getMetadata().getDevelopers(), ", ")
             );
         }
     }

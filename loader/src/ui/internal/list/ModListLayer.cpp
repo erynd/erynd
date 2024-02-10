@@ -147,6 +147,7 @@ CCArray* ModListLayer::createModCells(ModListType type, ModListQuery const& quer
     }
     return mods;
     #endif
+    return nullptr;
 }
 
 // UI
@@ -284,6 +285,17 @@ bool ModListLayer::init() {
 
     // select first tab
     this->onTab(nullptr);
+
+    // add safe mode label
+    if (Loader::get()->getLaunchFlag("safe-mode")) {
+        auto* label = CCLabelBMFont::create("Safe Mode Enabled", "bigFont.fnt");
+        label->setPosition(winSize.width / 2.f, 17);
+        label->setScale(0.625f);
+        label->setZOrder(999);
+        this->addChild(label);
+        // reference to windows safe mode
+        bg->setVisible(false);
+    }
 
     // enable keyboard
     this->setKeyboardEnabled(true);

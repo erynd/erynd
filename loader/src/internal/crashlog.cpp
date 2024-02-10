@@ -1,6 +1,7 @@
 #include "crashlog.hpp"
 #include <fmt/core.h>
 #include "about.hpp"
+#include "../loader/ModImpl.hpp"
 
 using namespace geode::prelude;
 
@@ -30,10 +31,21 @@ void crashlog::printMods(std::stringstream& stream) {
     if (mods.empty()) {
         stream << "<None>\n";
     }
+    std::sort(mods.begin(), mods.end(), [](Mod* a, Mod* b) {
+        auto const s1 = a->getID();
+        auto const s2 = b->getID();
+        return std::lexicographical_compare(s1.begin(), s1.end(), s2.begin(), s2.end(), [](auto a, auto b) {
+            return std::tolower(a) < std::tolower(b);
+        });
+    });
     using namespace std::string_view_literals;
     for (auto& mod : mods) {
         stream << fmt::format("{} | [{}] {}\n",
-            mod->isEnabled() ? "x"sv : mod->shouldLoad() ? "~"sv : " "sv,
+            ModImpl::getImpl(mod)->isCurrentlyLoading() ? "o"sv : 
+            mod->isEnabled() ? "x"sv : 
+            ModImpl::getImpl(mod)->hasProblems() ? "!"sv : // thank you for this bug report
+            mod->shouldLoad() ? "~"sv : 
+            " "sv,
             mod->getVersion().toString(), mod->getID()
         );
     }
@@ -50,12 +62,13 @@ std::string crashlog::writeCrashlog(geode::Mod* faultyMod, std::string const& in
     std::stringstream file;
 
     file << getDateString(false) << "\n"
-         << std::showbase << "Whoopsies! An unhandled exception has occured.\n";
+         << std::showbase << "Whoopsies! An unhandled exception has occurred.\n";
 
     if (faultyMod) {
         file << "It appears that the crash occurred while executing code from "
              << "the \"" << faultyMod->getID() << "\" mod. "
-             << "Please submit this crash report to its developer (" << faultyMod->getDeveloper()
+             << "Please submit this crash report to its developers ("
+             << ranges::join(faultyMod->getDevelopers(), ", ")
              << ") for assistance.\n";
     }
 
