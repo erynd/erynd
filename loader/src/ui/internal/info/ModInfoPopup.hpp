@@ -5,7 +5,6 @@
 #include <Geode/ui/MDTextArea.hpp>
 #include <Geode/ui/Scrollbar.hpp>
 #include <Geode/ui/IconButtonSprite.hpp>
-#include <Geode/loader/Index.hpp>
 #include <loader/Index2.hpp>
 
 using namespace geode::prelude;

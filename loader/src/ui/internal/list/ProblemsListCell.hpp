@@ -4,7 +4,6 @@
 #include <Geode/binding/FLAlertLayerProtocol.hpp>
 #include <Geode/loader/Loader.hpp>
 #include <Geode/loader/ModMetadata.hpp>
-#include <Geode/loader/Index.hpp>
 
 using namespace geode::prelude;
 

@@ -1,6 +1,5 @@
 #include "../ui/internal/list/ModListLayer.hpp"
 
-#include <Geode/loader/Index.hpp>
 #include <Geode/modify/MenuLayer.hpp>
 #include <Geode/modify/Modify.hpp>
 #include <Geode/modify/IDManager.hpp>

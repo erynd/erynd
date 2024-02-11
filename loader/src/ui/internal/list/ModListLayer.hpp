@@ -1,7 +1,6 @@
 #pragma once
 
 #include <Geode/binding/TextInputDelegate.hpp>
-#include <Geode/loader/Index.hpp>
 #include "BaseModsList.hpp"
 
 using namespace geode::prelude;

@@ -1,6 +1,5 @@
 #include "DevProfilePopup.hpp"
 #include <Geode/ui/ListView.hpp>
-#include <Geode/loader/Index.hpp>
 #include <Geode/ui/General.hpp>
 #include "../list/ModListCell.hpp"
 #include "../list/ModListLayer.hpp"

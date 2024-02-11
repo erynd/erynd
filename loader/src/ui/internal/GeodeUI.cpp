@@ -4,7 +4,6 @@
 #include "settings/ModSettingsPopup.hpp"
 
 #include <Geode/loader/Dirs.hpp>
-#include <Geode/loader/Index.hpp>
 #include <Geode/ui/GeodeUI.hpp>
 #include <Geode/ui/MDPopup.hpp>
 #include <Geode/utils/web.hpp>
