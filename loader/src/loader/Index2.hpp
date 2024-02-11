@@ -36,7 +36,7 @@ namespace geode {
         std::vector<IndexItem2> m_dependencies;
     };
 
-    class IndexQuery2 {
+    struct IndexQuery2 {
         std::string m_search;
     };
 
