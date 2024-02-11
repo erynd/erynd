@@ -29,11 +29,18 @@ namespace geode {
 
     class DetailedIndexItem2 : public IndexItem2 {
     public:
-        std::string m_about;
-        std::string m_changelog;
+        std::optional<std::string> m_about;
+        std::optional<std::string> m_changelog;
         // flattened out dependencies
         // can contain duplicates
         std::vector<IndexItem2> m_dependencies;
+
+        ModMetadata intoMetadata() const {
+            ModMetadata metadata = IndexItem2::intoMetadata();
+            metadata.setDetails(m_about);
+            metadata.setChangelog(m_changelog);
+            return metadata;
+        }
     };
 
     struct IndexQuery2 {
@@ -55,5 +62,7 @@ namespace geode {
         // server callback
         // todo: caching
         void getPageItems(int page, IndexQuery2 const& query, MiniFunction<void(std::vector<IndexItem2> const&)> callback, MiniFunction<void(std::string const&)> error);
+
+        void getDetailedInfo(std::string const& modId, MiniFunction<void(DetailedIndexItem2 const&)> callback, MiniFunction<void(std::string const&)> error);
     };
 };

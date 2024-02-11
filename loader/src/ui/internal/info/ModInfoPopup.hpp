@@ -6,6 +6,7 @@
 #include <Geode/ui/Scrollbar.hpp>
 #include <Geode/ui/IconButtonSprite.hpp>
 #include <Geode/loader/Index.hpp>
+#include <loader/Index2.hpp>
 
 using namespace geode::prelude;
 
@@ -89,7 +90,9 @@ class IndexItemInfoPopup : public ModInfoPopup {
 protected:
     EventListener<ModInstallFilter> m_installListener;
 
-    bool init(IndexItemHandle item, ModListLayer* list);
+    DetailedIndexItem2 m_item2;
+
+    bool init(DetailedIndexItem2 item, ModListLayer* list);
 
     void onInstallProgress(ModInstallEvent* event);
     void onInstall(CCObject*);
@@ -100,5 +103,5 @@ protected:
     IndexItemInfoPopup();
 
 public:
-    static IndexItemInfoPopup* create(IndexItemHandle item, ModListLayer* list);
+    static IndexItemInfoPopup* create(DetailedIndexItem2 item, ModListLayer* list);
 };

@@ -21,6 +21,7 @@
 #include <Geode/utils/web.hpp>
 #include <loader/LoaderImpl.hpp>
 #include <ui/internal/list/InstallListPopup.hpp>
+#include <loader/Index2.hpp>
 
 static constexpr int const TAG_CONFIRM_UNINSTALL = 5;
 static constexpr int const TAG_CONFIRM_UPDATE = 6;
@@ -600,13 +601,14 @@ IndexItemInfoPopup::IndexItemInfoPopup()
         ModInstallFilter("")
     ) {}
 
-bool IndexItemInfoPopup::init(IndexItemHandle item, ModListLayer* list) {
-    m_item = item;
-    m_installListener.setFilter(m_item->getMetadata().getID());
+bool IndexItemInfoPopup::init(DetailedIndexItem2 item, ModListLayer* list) {
+    m_item2 = item;
+    // TODO: new index
+    // m_installListener.setFilter(m_item->getMetadata().getID());
 
     auto winSize = CCDirector::sharedDirector()->getWinSize();
 
-    if (!ModInfoPopup::initAnchored(LAYER_SIZE.width, LAYER_SIZE.height, item->getMetadata(), list)) return false;
+    if (!ModInfoPopup::initAnchored(LAYER_SIZE.width, LAYER_SIZE.height, m_item2.intoMetadata(), list)) return false;
 
     // bruh why is this here if we are allowing for browsing already installed mods
     // if (item->isInstalled()) return true;
@@ -673,15 +675,18 @@ void IndexItemInfoPopup::onInstall(CCObject*) {
 }
 
 CCNode* IndexItemInfoPopup::createLogo(CCSize const& size) {
-    return geode::createIndexItemLogo(m_item, size);
+    // return geode::createIndexItemLogo(m_item, size);
+    // TODO: new index
+    return CCLabelBMFont::create("Hello", "goldFont.fnt");
 }
 
 ModMetadata IndexItemInfoPopup::getMetadata() const {
-    return m_item->getMetadata();
+    // return m_item->getMetadata();
+    return m_item2.intoMetadata();
 }
 
 IndexItemInfoPopup* IndexItemInfoPopup::create(
-    IndexItemHandle item, ModListLayer* list
+    DetailedIndexItem2 item, ModListLayer* list
 ) {
     auto ret = new IndexItemInfoPopup;
     if (ret && ret->init(item, list)) {

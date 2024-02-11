@@ -50,10 +50,40 @@ void Index2::getPageItems(int page, IndexQuery2 const& query, MiniFunction<void(
                 item.m_name = latestVer["name"].as_string();
                 item.m_description = latestVer["description"].as_string();
                 item.m_developer = "Lol api doesnt have this";
-                item.m_isAPI = false;
+                item.m_isAPI = latestVer["api"].as_bool();
                 items.push_back(item);
             }
             callback(std::move(items));
+        })
+        .expect([=](std::string const& msg) {
+            try {
+                log::error("Index error {}", matjson::parse(msg).dump());
+            } catch (...) {
+                log::error("Index error {}", msg);
+            }
+            error(msg);
+        });
+}
+
+void Index2::getDetailedInfo(std::string const& modId, MiniFunction<void(DetailedIndexItem2 const&)> callback, MiniFunction<void(std::string const&)> error) {
+    web::AsyncWebRequest()
+        .userAgent("Geode Loader")
+        .get(GEODE_INDEX_URL "/mods/" + modId)
+        .json()
+        .then([=](matjson::Value const& json) {
+            DetailedIndexItem2 item;
+            auto const data = json["payload"];
+            auto const& latestVer = data["versions"][0];
+            item.m_modId = data["id"].as_string();
+            item.m_version = VersionInfo::parse(latestVer["version"].as_string()).unwrap();
+            item.m_downloadUrl = latestVer["download_link"].as_string();
+            item.m_name = latestVer["name"].as_string();
+            item.m_description = latestVer["description"].as_string();
+            item.m_developer = "Lol api doesnt have this";
+            item.m_isAPI = latestVer["api"].as_bool();
+            item.m_about = data["about"].is_string() ? std::make_optional(data["about"].as_string()) : std::nullopt;
+            item.m_changelog = data["changelog"].is_string() ? std::make_optional(data["changelog"].as_string()) : std::nullopt;
+            callback(std::move(item));
         })
         .expect([=](std::string const& msg) {
             try {

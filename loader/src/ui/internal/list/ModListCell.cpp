@@ -350,7 +350,12 @@ CCNode* ModCell::createLogo(CCSize const& size) {
 // IndexItemCell
 
 void IndexItemCell::onInfo(CCObject*) {
-    IndexItemInfoPopup::create(m_item, m_layer)->show();
+    log::debug("oninfo called, m_item2 is {}", m_item2.m_modId);
+    Index2::get().getDetailedInfo(m_item2.m_modId, [=](DetailedIndexItem2 const& item) {
+        IndexItemInfoPopup::create(item, m_layer)->show();
+    }, [](std::string const& msg) {
+        FLAlertLayer::create("Error", msg, "OK")->show();
+    });
 }
 
 void IndexItemCell::onRestart(CCObject*) {
