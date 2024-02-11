@@ -5,6 +5,26 @@
 using namespace geode::prelude;
 
 namespace geode {
+    // TODO: new index idk why these are here
+    /**
+     * Status signifying an index-related download has been finished
+     */
+    using UpdateFinished = std::monostate;
+    /**
+     * Status signifying an index-related download is in progress. First element 
+     * in pair is percentage downloaded, second is status string
+     */
+    using UpdateProgress = std::pair<uint8_t, std::string>;
+    /**
+     * Status signifying an index-related download has failed. Consists of the 
+     * error string
+     */
+    using UpdateFailed = std::string;
+    /**
+     * Status code for an index-related download
+     */
+    using UpdateStatus = std::variant<UpdateFinished, UpdateProgress, UpdateFailed>;
+
     class IndexItem2 {
     public:
         std::string m_modId;
