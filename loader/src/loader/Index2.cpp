@@ -1,25 +1,34 @@
 #include "Index2.hpp"
 #include <Geode/Geode.hpp>
+#include <Geode/utils/web.hpp>
 
 using namespace geode::prelude;
 
+// yes this is a macro.. so we can take advantage of string literal concat
+#define GEODE_INDEX_URL "https://api.geode-sdk.org/v1"
+
 void Index2::getPageItems(int page, IndexQuery2 const& query, MiniFunction<void(std::vector<IndexItem2> const&)> callback, MiniFunction<void(std::string const&)> error) {
-    std::thread([=]{
-        std::this_thread::sleep_for(std::chrono::seconds(1));
-        Loader::get()->queueInMainThread([=]() {
+    web::AsyncWebRequest()
+        .userAgent("Geode Loader")
+        .get(GEODE_INDEX_URL "/mods?gd=2.204")
+        .json()
+        .then([=](matjson::Value const& json) {
             std::vector<IndexItem2> items;
-            for (int i = 0; i < m_pageLimit; i++) {
+            for (auto const& entry : json["payload"]["data"].as_array()) {
                 IndexItem2 item;
-                item.m_modId = "mod" + std::to_string(i + page * m_pageLimit);
-                item.m_version = VersionInfo(1, 0, 0);
-                item.m_downloadUrl = "https://example.com/mod" + std::to_string(i + page * m_pageLimit) + ".zip";
-                item.m_name = "Mod " + std::to_string(i + page * m_pageLimit);
-                item.m_description = "This is a mod";
-                item.m_developer = "Geode";
+                auto const& latestVer = entry["versions"][0];
+                item.m_modId = entry["id"].as_string();
+                item.m_version = VersionInfo::parse(entry["latest_version"].as_string()).unwrap();
+                item.m_downloadUrl = latestVer["download_link"].as_string();
+                item.m_name = latestVer["name"].as_string();
+                item.m_description = latestVer["description"].as_string();
+                item.m_developer = "Lol api doesnt have this";
                 item.m_isAPI = false;
                 items.push_back(item);
             }
             callback(std::move(items));
+        })
+        .expect([=](std::string const& msg) {
+            error(msg);
         });
-    }).detach();
 }

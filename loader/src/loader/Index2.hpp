@@ -41,9 +41,8 @@ namespace geode {
     };
 
     class Index2 {
-    public:
         int m_pageLimit = 20;
-
+    public:
         static Index2& get() {
             static Index2 instance;
             return instance;
