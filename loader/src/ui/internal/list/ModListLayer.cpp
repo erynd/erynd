@@ -8,16 +8,20 @@
 #include <Geode/binding/MenuLayer.hpp>
 #include <Geode/binding/TableView.hpp>
 #include <Geode/ui/BasedButton.hpp>
-#include <Geode/ui/Notification.hpp>
 #include <Geode/utils/casts.hpp>
 #include <Geode/loader/Dirs.hpp>
 #include <Geode/loader/Loader.hpp>
 #include <Geode/ui/ListView.hpp>
 #include <Geode/utils/string.hpp>
 #include <Geode/utils/ranges.hpp>
-#include "../../../loader/Index2.hpp"
+#include <loader/Index2.hpp>
 #include "InstalledModsList.hpp"
 #include "IndexModsList.hpp"
+#include <Geode/loader/Mod.hpp>
+#include <Geode/binding/CCContentLayer.hpp>
+
+#define FTS_FUZZY_MATCH_IMPLEMENTATION
+#include <Geode/external/fts/fts_fuzzy_match.h>
 
 #ifdef GEODE_IS_WINDOWS
 #include <filesystem>

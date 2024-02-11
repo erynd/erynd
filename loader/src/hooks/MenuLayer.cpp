@@ -12,6 +12,7 @@
 #include <loader/ModImpl.hpp>
 #include <loader/LoaderImpl.hpp>
 #include <loader/updater.hpp>
+#include <Geode/binding/ButtonSprite.hpp>
 
 using namespace geode::prelude;
 

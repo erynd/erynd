@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include <Geode/ui/Popup.hpp>
+#include <Geode/ui/ListView.hpp>
 
 #include "InstallListCell.hpp"
 
