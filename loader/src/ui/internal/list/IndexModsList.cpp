@@ -69,12 +69,13 @@ void IndexModsList::updateItems() {
     this->updateList(CCArray::create());
     this->addLoadingCircle();
 
-    Index::get()->getPageItems(m_page, IndexQuery(), 
-        [this](std::vector<IndexItem> const& items) {
-        this->handleItems(items);
-    }, [this](std::string const& error) {
-        this->handleError(error);
-    });
+    Index::get()->searchMods(m_page, IndexQuery())
+        ->then([this](std::vector<IndexItem> const& items) {
+            this->handleItems(items);
+        })
+        ->expect([this](std::string const& error) {
+            this->handleError(error);
+        });
 }
 
 void IndexModsList::handleItems(std::vector<IndexItem> const& items) {

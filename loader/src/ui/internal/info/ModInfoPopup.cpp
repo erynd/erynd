@@ -685,7 +685,7 @@ void IndexItemInfoPopup::onInstall(CCObject*) {
 CCNode* IndexItemInfoPopup::createLogo(CCSize const& size) {
     // return geode::createIndexItemLogo(m_item, size);
     // TODO: new index
-    return CCLabelBMFont::create("Hello", "goldFont.fnt");
+    return geode::createDefaultLogo(size);
 }
 
 ModMetadata IndexItemInfoPopup::getMetadata() const {

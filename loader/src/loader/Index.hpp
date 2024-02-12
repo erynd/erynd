@@ -1,6 +1,8 @@
 #pragma once
 
 #include <Geode/Geode.hpp>
+#include <Geode/utils/MiniFunction.hpp>
+#include <memory>
 
 using namespace geode::prelude;
 
@@ -11,12 +13,12 @@ namespace geode {
      */
     using UpdateFinished = std::monostate;
     /**
-     * Status signifying an index-related download is in progress. First element 
+     * Status signifying an index-related download is in progress. First element
      * in pair is percentage downloaded, second is status string
      */
     using UpdateProgress = std::pair<uint8_t, std::string>;
     /**
-     * Status signifying an index-related download has failed. Consists of the 
+     * Status signifying an index-related download has failed. Consists of the
      * error string
      */
     using UpdateFailed = std::string;
@@ -77,8 +79,8 @@ namespace geode {
     };
 
     /**
-     * Event for when a mod is being installed from the index. Automatically 
-     * broadcast by the mods index; use ModInstallFilter to listen to these 
+     * Event for when a mod is being installed from the index. Automatically
+     * broadcast by the mods index; use ModInstallFilter to listen to these
      * events
      */
     struct GEODE_DLL ModInstallEvent : public Event {
@@ -90,7 +92,7 @@ namespace geode {
          * The current status of the installation
          */
         const UpdateStatus status;
-    
+
     private:
         ModInstallEvent(std::string const& id, const UpdateStatus status);
 
@@ -98,7 +100,7 @@ namespace geode {
     };
 
     /**
-     * Basic filter for listening to mod installation events. Always propagates 
+     * Basic filter for listening to mod installation events. Always propagates
      * the event down the chain
      */
 	class GEODE_DLL ModInstallFilter : public EventFilter<ModInstallEvent> {
@@ -107,7 +109,7 @@ namespace geode {
 
 	public:
 		using Callback = void(ModInstallEvent*);
-	
+
         ListenerResult handle(utils::MiniFunction<Callback> fn, ModInstallEvent* event);
 		ModInstallFilter(std::string const& id);
         ModInstallFilter(ModInstallFilter const&) = default;
@@ -126,6 +128,44 @@ namespace geode {
 
     struct IndexQuery {
         std::string m_search;
+    };
+
+    template <class Type>
+    class IndexPromise : public std::enable_shared_from_this<IndexPromise<Type>> {
+        MiniFunction<void(Type)> m_then;
+        MiniFunction<void(std::string const&)> m_expect;
+
+        // TODO: this is definitely copying the `Type` when it shouldnt..
+        void setup(MiniFunction<void(MiniFunction<void(Type)> resolve, MiniFunction<void(std::string const&)> reject)> callback) {
+            auto ptr = this->shared_from_this();
+            callback([=](auto&& value) {
+                // TODO: epic race condition i think,
+                // promise could resolve before m_then is set!
+                if (ptr->m_then) {
+                    ptr->m_then(value);
+                }
+            }, [=](auto&& error) {
+                if (ptr->m_expect) {
+                    ptr->m_expect(error);
+                }
+            });
+        }
+    public:
+        auto then(auto cb) {
+            m_then = cb;
+            return this->shared_from_this();
+        }
+
+        auto expect(auto cb) {
+            m_expect = cb;
+            return this->shared_from_this();
+        }
+
+        static std::shared_ptr<IndexPromise<Type>> create(MiniFunction<void(MiniFunction<void(Type)> resolve, MiniFunction<void(std::string const&)> reject)> callback) {
+            auto ptr = std::make_shared<IndexPromise<Type>>();
+            ptr->setup(callback);
+            return ptr;
+        }
     };
 
     class Index {
@@ -148,8 +188,8 @@ namespace geode {
 
         // server callback
         // todo: caching
-        void getPageItems(int page, IndexQuery const& query, MiniFunction<void(std::vector<IndexItem> const&)> callback, MiniFunction<void(std::string const&)> error);
+        std::shared_ptr<IndexPromise<std::vector<IndexItem> const&>> searchMods(int page, IndexQuery const& query);
 
-        void getDetailedInfo(std::string const& modId, MiniFunction<void(DetailedIndexItem const&)> callback, MiniFunction<void(std::string const&)> error);
+        std::shared_ptr<IndexPromise<DetailedIndexItem const&>> fetchModInfo(std::string const& modId);
     };
 };

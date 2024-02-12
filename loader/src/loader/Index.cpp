@@ -29,70 +29,75 @@ std::string buildQueryString(std::initializer_list<std::pair<std::string, std::s
     return query;
 }
 
-void Index::getPageItems(int page, IndexQuery const& query, MiniFunction<void(std::vector<IndexItem> const&)> callback, MiniFunction<void(std::string const&)> error) {
-    web::AsyncWebRequest()
-        .userAgent("Geode Loader")
-        .get(GEODE_INDEX_URL "/mods?" + buildQueryString({
-            { "gd", LoaderImpl::get()->getGameVersion() },
-            { "page", std::to_string(page + 1) },
-            { "per_page", std::to_string(m_pageLimit) },
-            { "search", query.m_search },
-        }))
-        .json()
-        .then([=](matjson::Value const& json) {
-            std::vector<IndexItem> items;
-            for (auto const& entry : json["payload"]["data"].as_array()) {
-                IndexItem item;
-                auto const& latestVer = entry["versions"][0];
-                item.m_modId = entry["id"].as_string();
-                item.m_version = VersionInfo::parse(entry["latest_version"].as_string()).unwrap();
+std::shared_ptr<IndexPromise<std::vector<IndexItem> const&>> Index::searchMods(int page, IndexQuery const& query) {
+    return IndexPromise<std::vector<IndexItem> const&>::create([=, this](auto resolve, auto reject) {
+        web::AsyncWebRequest()
+            .userAgent("Geode Loader")
+            .get(GEODE_INDEX_URL "/mods?" + buildQueryString({
+                { "gd", LoaderImpl::get()->getGameVersion() },
+                { "page", std::to_string(page + 1) },
+                { "per_page", std::to_string(m_pageLimit) },
+                { "search", query.m_search },
+            }))
+            .json()
+            .then([=](matjson::Value const& json) {
+                std::vector<IndexItem> items;
+                for (auto const& entry : json["payload"]["data"].as_array()) {
+                    IndexItem item;
+                    auto const& latestVer = entry["versions"][0];
+                    item.m_modId = entry["id"].as_string();
+                    item.m_version = VersionInfo::parse(entry["latest_version"].as_string()).unwrap();
+                    item.m_downloadUrl = latestVer["download_link"].as_string();
+                    item.m_name = latestVer["name"].as_string();
+                    item.m_description = latestVer["description"].as_string();
+                    item.m_developer = "Lol api doesnt have this";
+                    item.m_isAPI = latestVer["api"].as_bool();
+                    items.push_back(item);
+                }
+                resolve(std::move(items));
+            })
+            .expect([=](std::string const& msg) {
+                try {
+                    log::error("Index error {}", matjson::parse(msg).dump());
+                } catch (...) {
+                    log::error("Index error {}", msg);
+                }
+                reject(msg);
+            });
+
+    });
+}
+
+std::shared_ptr<IndexPromise<DetailedIndexItem const&>> Index::fetchModInfo(std::string const& modId) {
+    return IndexPromise<DetailedIndexItem const&>::create([=](auto resolve, auto reject) {
+        web::AsyncWebRequest()
+            .userAgent("Geode Loader")
+            .get(GEODE_INDEX_URL "/mods/" + modId)
+            .json()
+            .then([=](matjson::Value const& json) {
+                DetailedIndexItem item;
+                auto const data = json["payload"];
+                auto const& latestVer = data["versions"][0];
+                item.m_modId = data["id"].as_string();
+                item.m_version = VersionInfo::parse(latestVer["version"].as_string()).unwrap();
                 item.m_downloadUrl = latestVer["download_link"].as_string();
                 item.m_name = latestVer["name"].as_string();
                 item.m_description = latestVer["description"].as_string();
                 item.m_developer = "Lol api doesnt have this";
                 item.m_isAPI = latestVer["api"].as_bool();
-                items.push_back(item);
-            }
-            callback(std::move(items));
-        })
-        .expect([=](std::string const& msg) {
-            try {
-                log::error("Index error {}", matjson::parse(msg).dump());
-            } catch (...) {
-                log::error("Index error {}", msg);
-            }
-            error(msg);
-        });
-}
-
-void Index::getDetailedInfo(std::string const& modId, MiniFunction<void(DetailedIndexItem const&)> callback, MiniFunction<void(std::string const&)> error) {
-    web::AsyncWebRequest()
-        .userAgent("Geode Loader")
-        .get(GEODE_INDEX_URL "/mods/" + modId)
-        .json()
-        .then([=](matjson::Value const& json) {
-            DetailedIndexItem item;
-            auto const data = json["payload"];
-            auto const& latestVer = data["versions"][0];
-            item.m_modId = data["id"].as_string();
-            item.m_version = VersionInfo::parse(latestVer["version"].as_string()).unwrap();
-            item.m_downloadUrl = latestVer["download_link"].as_string();
-            item.m_name = latestVer["name"].as_string();
-            item.m_description = latestVer["description"].as_string();
-            item.m_developer = "Lol api doesnt have this";
-            item.m_isAPI = latestVer["api"].as_bool();
-            item.m_about = data["about"].is_string() ? std::make_optional(data["about"].as_string()) : std::nullopt;
-            item.m_changelog = data["changelog"].is_string() ? std::make_optional(data["changelog"].as_string()) : std::nullopt;
-            callback(std::move(item));
-        })
-        .expect([=](std::string const& msg) {
-            try {
-                log::error("Index error {}", matjson::parse(msg).dump());
-            } catch (...) {
-                log::error("Index error {}", msg);
-            }
-            error(msg);
-        });
+                item.m_about = data["about"].is_string() ? std::make_optional(data["about"].as_string()) : std::nullopt;
+                item.m_changelog = data["changelog"].is_string() ? std::make_optional(data["changelog"].as_string()) : std::nullopt;
+                resolve(std::move(item));
+            })
+            .expect([=](std::string const& msg) {
+                try {
+                    log::error("Index error {}", matjson::parse(msg).dump());
+                } catch (...) {
+                    log::error("Index error {}", msg);
+                }
+                reject(msg);
+            });
+    });
 }
 
 ModInstallEvent::ModInstallEvent(

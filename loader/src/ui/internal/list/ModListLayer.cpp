@@ -499,7 +499,7 @@ void ModListLayer::reloadList(bool keepScroll, std::optional<ModListQuery> const
         case (ModListType::Download): {
             this->updateList(CCArray::create(), keepScroll);
 
-            Index::get()->getPageItems(m_page, IndexQuery(), 
+            Index::get()->searchMods(m_page, IndexQuery(), 
                 [this, keepScroll](std::vector<IndexItem> const& items) {
                 auto mods = CCArray::create();
                 for (auto& item : items) {
