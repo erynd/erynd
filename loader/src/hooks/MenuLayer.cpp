@@ -9,6 +9,7 @@
 #include <Geode/ui/Popup.hpp>
 #include <Geode/ui/MDPopup.hpp>
 #include <Geode/utils/cocos.hpp>
+#include <Geode/utils/web.hpp>
 #include <loader/ModImpl.hpp>
 #include <loader/LoaderImpl.hpp>
 #include <loader/updater.hpp>
@@ -23,24 +24,25 @@ class CustomMenuLayer;
 static Ref<Notification> INDEX_UPDATE_NOTIF = nullptr;
 
 $execute {
-    new EventListener<IndexUpdateFilter>(+[](IndexUpdateEvent* event) {
-        if (!INDEX_UPDATE_NOTIF) return;
-        std::visit(makeVisitor {
-            [](UpdateProgress const& prog) {},
-            [](UpdateFinished const&) {
-                INDEX_UPDATE_NOTIF->setIcon(NotificationIcon::Success);
-                INDEX_UPDATE_NOTIF->setString("Index Up-to-Date");
-                INDEX_UPDATE_NOTIF->waitAndHide();
-                INDEX_UPDATE_NOTIF = nullptr;
-            },
-            [](UpdateFailed const& info) {
-                INDEX_UPDATE_NOTIF->setIcon(NotificationIcon::Error);
-                INDEX_UPDATE_NOTIF->setString(info);
-                INDEX_UPDATE_NOTIF->setTime(NOTIFICATION_LONG_TIME);
-                INDEX_UPDATE_NOTIF = nullptr;
-            },
-        }, event->status);
-    });
+    // TODO: new index
+    // new EventListener<IndexUpdateFilter>(+[](IndexUpdateEvent* event) {
+    //     if (!INDEX_UPDATE_NOTIF) return;
+    //     std::visit(makeVisitor {
+    //         [](UpdateProgress const& prog) {},
+    //         [](UpdateFinished const&) {
+    //             INDEX_UPDATE_NOTIF->setIcon(NotificationIcon::Success);
+    //             INDEX_UPDATE_NOTIF->setString("Index Up-to-Date");
+    //             INDEX_UPDATE_NOTIF->waitAndHide();
+    //             INDEX_UPDATE_NOTIF = nullptr;
+    //         },
+    //         [](UpdateFailed const& info) {
+    //             INDEX_UPDATE_NOTIF->setIcon(NotificationIcon::Error);
+    //             INDEX_UPDATE_NOTIF->setString(info);
+    //             INDEX_UPDATE_NOTIF->setTime(NOTIFICATION_LONG_TIME);
+    //             INDEX_UPDATE_NOTIF = nullptr;
+    //         },
+    //     }, event->status);
+    // });
 };
 
 struct CustomMenuLayer : Modify<CustomMenuLayer, MenuLayer> {
@@ -175,17 +177,18 @@ struct CustomMenuLayer : Modify<CustomMenuLayer, MenuLayer> {
         }
 
         // update mods index
-        if (!m_fields->m_menuDisabled && !INDEX_UPDATE_NOTIF && !Index::get()->hasTriedToUpdate()) {
-            this->addChild(EventListenerNode<IndexUpdateFilter>::create(
-                this, &CustomMenuLayer::onIndexUpdate
-            ));
-            INDEX_UPDATE_NOTIF = Notification::create(
-                "Updating Index", NotificationIcon::Loading, 0
-            );
-            INDEX_UPDATE_NOTIF->setTime(NOTIFICATION_LONG_TIME);
-            INDEX_UPDATE_NOTIF->show();
-            Index::get()->update();
-        }
+        // TODO: new index fetch for mod updates
+        // if (!m_fields->m_menuDisabled && !INDEX_UPDATE_NOTIF && !Index::get()->hasTriedToUpdate()) {
+        //     this->addChild(EventListenerNode<IndexUpdateFilter>::create(
+        //         this, &CustomMenuLayer::onIndexUpdate
+        //     ));
+        //     INDEX_UPDATE_NOTIF = Notification::create(
+        //         "Updating Index", NotificationIcon::Loading, 0
+        //     );
+        //     INDEX_UPDATE_NOTIF->setTime(NOTIFICATION_LONG_TIME);
+        //     INDEX_UPDATE_NOTIF->show();
+        //     Index::get()->update();
+        // }
 
         this->addUpdateIndicator();
     
@@ -250,25 +253,17 @@ struct CustomMenuLayer : Modify<CustomMenuLayer, MenuLayer> {
         }
     }
 
-    void onIndexUpdate(IndexUpdateEvent* event) {
-        if (
-            std::holds_alternative<UpdateFinished>(event->status) ||
-            std::holds_alternative<UpdateFailed>(event->status)
-        ) {
-            this->addUpdateIndicator();
-        }
-    }
-
     void addUpdateIndicator() {
-        if (!m_fields->m_menuDisabled && Index::get()->areUpdatesAvailable()) {
-            auto icon = CCSprite::createWithSpriteFrameName("updates-available.png"_spr);
-            icon->setPosition(
-                m_fields->m_geodeButton->getContentSize() - CCSize { 10.f, 10.f }
-            );
-            icon->setZOrder(99);
-            icon->setScale(.5f);
-            m_fields->m_geodeButton->addChild(icon);
-        }
+        // TODO: new index
+        // if (!m_fields->m_menuDisabled && Index::get()->areUpdatesAvailable()) {
+        //     auto icon = CCSprite::createWithSpriteFrameName("updates-available.png"_spr);
+        //     icon->setPosition(
+        //         m_fields->m_geodeButton->getContentSize() - CCSize { 10.f, 10.f }
+        //     );
+        //     icon->setZOrder(99);
+        //     icon->setScale(.5f);
+        //     m_fields->m_geodeButton->addChild(icon);
+        // }
     }
 
     void onMissingTextures(CCObject*) {

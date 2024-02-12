@@ -91,41 +91,42 @@ CCNode* geode::createModLogo(Mod* mod, CCSize const& size) {
     return node;
 }
 
-CCNode* geode::createIndexItemLogo(IndexItemHandle item, CCSize const& size) {
-    auto logoPath = ghc::filesystem::absolute(item->getRootPath() / "logo.png");
-    CCNode* spr = CCSprite::create(logoPath.string().c_str());
-    if (!spr) {
-        spr = CCSprite::createWithSpriteFrameName("no-logo.png"_spr);
-    }
-    if (!spr) {
-        spr = CCLabelBMFont::create("N/A", "goldFont.fnt");
-    }
-    if (item->isFeatured()) {
-        auto glowSize = size + CCSize(4.f, 4.f);
+// TODO: new index
+// CCNode* geode::createIndexItemLogo(IndexItemHandle item, CCSize const& size) {
+//     auto logoPath = ghc::filesystem::absolute(item->getRootPath() / "logo.png");
+//     CCNode* spr = CCSprite::create(logoPath.string().c_str());
+//     if (!spr) {
+//         spr = CCSprite::createWithSpriteFrameName("no-logo.png"_spr);
+//     }
+//     if (!spr) {
+//         spr = CCLabelBMFont::create("N/A", "goldFont.fnt");
+//     }
+//     if (item->isFeatured()) {
+//         auto glowSize = size + CCSize(4.f, 4.f);
 
-        auto logoGlow = CCSprite::createWithSpriteFrameName("logo-glow.png"_spr);
-        logoGlow->setScaleX(glowSize.width / logoGlow->getContentSize().width);
-        logoGlow->setScaleY(glowSize.height / logoGlow->getContentSize().height);
+//         auto logoGlow = CCSprite::createWithSpriteFrameName("logo-glow.png"_spr);
+//         logoGlow->setScaleX(glowSize.width / logoGlow->getContentSize().width);
+//         logoGlow->setScaleY(glowSize.height / logoGlow->getContentSize().height);
 
-        // i dont know why + 1 is needed and its too late for me to figure out why
-        spr->setPosition(
-            logoGlow->getContentSize().width / 2 + 1,
-            logoGlow->getContentSize().height / 2 - 1
-        );
-        // scary mathematics
-        spr->setScaleX(size.width / spr->getContentSize().width / logoGlow->getScaleX());
-        spr->setScaleY(size.height / spr->getContentSize().height / logoGlow->getScaleY());
-        logoGlow->addChild(spr);
-        spr = logoGlow;
-    }
-    else {
-        limitNodeSize(spr, size, 1.f, .01f);
-    }
-    spr->setPosition(size/2);
-    spr->setAnchorPoint({.5f, .5f});
+//         // i dont know why + 1 is needed and its too late for me to figure out why
+//         spr->setPosition(
+//             logoGlow->getContentSize().width / 2 + 1,
+//             logoGlow->getContentSize().height / 2 - 1
+//         );
+//         // scary mathematics
+//         spr->setScaleX(size.width / spr->getContentSize().width / logoGlow->getScaleX());
+//         spr->setScaleY(size.height / spr->getContentSize().height / logoGlow->getScaleY());
+//         logoGlow->addChild(spr);
+//         spr = logoGlow;
+//     }
+//     else {
+//         limitNodeSize(spr, size, 1.f, .01f);
+//     }
+//     spr->setPosition(size/2);
+//     spr->setAnchorPoint({.5f, .5f});
 
-    auto node = CCNode::create();
-    node->addChild(spr);
-    node->setContentSize(size);
-    return node;
-}
+//     auto node = CCNode::create();
+//     node->addChild(spr);
+//     node->setContentSize(size);
+//     return node;
+// }

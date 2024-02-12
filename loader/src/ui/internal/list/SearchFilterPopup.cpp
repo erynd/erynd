@@ -5,6 +5,7 @@
 
 #include <Geode/binding/GameToolbox.hpp>
 #include <Geode/binding/CCMenuItemToggler.hpp>
+#include <loader/Index2.hpp>
 
 // re-add when we actually add the platforms
 const float iosAndAndroidSize = 25.f;

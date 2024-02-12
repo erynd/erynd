@@ -29,7 +29,7 @@ std::string buildQueryString(std::initializer_list<std::pair<std::string, std::s
     return query;
 }
 
-void Index2::getPageItems(int page, IndexQuery2 const& query, MiniFunction<void(std::vector<IndexItem2> const&)> callback, MiniFunction<void(std::string const&)> error) {
+void Index::getPageItems(int page, IndexQuery2 const& query, MiniFunction<void(std::vector<IndexItem2> const&)> callback, MiniFunction<void(std::string const&)> error) {
     web::AsyncWebRequest()
         .userAgent("Geode Loader")
         .get(GEODE_INDEX_URL "/mods?" + buildQueryString({
@@ -65,7 +65,7 @@ void Index2::getPageItems(int page, IndexQuery2 const& query, MiniFunction<void(
         });
 }
 
-void Index2::getDetailedInfo(std::string const& modId, MiniFunction<void(DetailedIndexItem2 const&)> callback, MiniFunction<void(std::string const&)> error) {
+void Index::getDetailedInfo(std::string const& modId, MiniFunction<void(DetailedIndexItem2 const&)> callback, MiniFunction<void(std::string const&)> error) {
     web::AsyncWebRequest()
         .userAgent("Geode Loader")
         .get(GEODE_INDEX_URL "/mods/" + modId)
@@ -93,4 +93,36 @@ void Index2::getDetailedInfo(std::string const& modId, MiniFunction<void(Detaile
             }
             error(msg);
         });
+}
+
+ModInstallEvent::ModInstallEvent(
+    std::string const& id, const UpdateStatus status
+) : modID(id), status(status) {}
+
+ListenerResult ModInstallFilter::handle(utils::MiniFunction<Callback> fn, ModInstallEvent* event) {
+    if (m_id == event->modID) {
+        fn(event);
+    }
+    return ListenerResult::Propagate;
+}
+
+ModInstallFilter::ModInstallFilter(std::string const& id) : m_id(id) {}
+
+std::string IndexItem2::getDownloadURL() const {
+    return {};
+}
+std::string IndexItem2::getPackageHash() const {
+    return {};
+}
+std::unordered_set<PlatformID> IndexItem2::getAvailablePlatforms() const {
+    return {};
+}
+bool IndexItem2::isFeatured() const {
+    return {};
+}
+std::unordered_set<std::string> IndexItem2::getTags() const {
+    return {};
+}
+bool IndexItem2::isInstalled() const {
+    return {};
 }

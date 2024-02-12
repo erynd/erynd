@@ -28,16 +28,17 @@ bool DevProfilePopup::setup(std::string const& developer, ModListLayer* list) {
     }
 
     // index mods
-    for (auto& item : Index::get()->getItemsByDeveloper(developer)) {
-        if (Loader::get()->isModInstalled(item->getMetadata().getID())) {
-            continue;
-        }
-        auto cell = IndexItemCell::create(
-            item, m_layer, ModListDisplay::Concise, { 358.f, 40.f }
-        );
-        cell->disableDeveloperButton();
-        items->addObject(cell);
-    }
+    // TODO: new index
+    // for (auto& item : Index::get()->getItemsByDeveloper(developer)) {
+    //     if (Loader::get()->isModInstalled(item->getMetadata().getID())) {
+    //         continue;
+    //     }
+    //     auto cell = IndexItemCell::create(
+    //         item, m_layer, ModListDisplay::Concise, { 358.f, 40.f }
+    //     );
+    //     cell->disableDeveloperButton();
+    //     items->addObject(cell);
+    // }
 
     // mods list
     auto listSize = CCSize { 358.f, 160.f };

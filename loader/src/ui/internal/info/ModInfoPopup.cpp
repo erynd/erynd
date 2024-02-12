@@ -264,25 +264,26 @@ void ModInfoPopup::popupInstallItem(IndexItemHandle item) {
     }
 
     createQuickPopup("Confirm Install", content, btn1, btn2, 320.f, [&](FLAlertLayer*, bool btn2) {
-        if (btn2) {
-            auto canInstall = Index::get()->canInstall(m_item);
-            if (!canInstall) {
-                FLAlertLayer::create(
-                    "Unable to Install",
-                    canInstall.unwrapErr(),
-                    "OK"
-                )->show();
-                return;
-            }
-            this->preInstall();
-            Index::get()->install(m_item);
-        }
-        else {
-            InstallListPopup::create(m_item, [&](IndexInstallList const& list) {
-                this->preInstall();
-                Index::get()->install(list);
-            })->show();
-        }
+        // TODO: new index
+        // if (btn2) {
+        //     auto canInstall = Index::get()->canInstall(m_item);
+        //     if (!canInstall) {
+        //         FLAlertLayer::create(
+        //             "Unable to Install",
+        //             canInstall.unwrapErr(),
+        //             "OK"
+        //         )->show();
+        //         return;
+        //     }
+        //     this->preInstall();
+        //     Index::get()->install(m_item);
+        // }
+        // else {
+        //     InstallListPopup::create(m_item, [&](IndexInstallList const& list) {
+        //         this->preInstall();
+        //         Index::get()->install(list);
+        //     })->show();
+        // }
     }, true, true);
 }
 
@@ -300,7 +301,8 @@ void ModInfoPopup::preInstall() {
 }
 
 void ModInfoPopup::onCancelInstall(CCObject*) {
-    Index::get()->cancelInstall(m_item);
+    // TODO: new index
+    // Index::get()->cancelInstall(m_item);
 }
 
 // LocalModInfoPopup
@@ -311,10 +313,11 @@ LocalModInfoPopup::LocalModInfoPopup()
     ) {}
 
 bool LocalModInfoPopup::init(Mod* mod, ModListLayer* list) {
-    m_item = Index::get()->getMajorItem(mod->getMetadata().getID());
-    if (m_item) {
-        m_installListener.setFilter(m_item->getMetadata().getID());
-    }
+    // TODO: new index
+    // m_item = Index::get()->getMajorItem(mod->getMetadata().getID());
+    // if (m_item) {
+    //     m_installListener.setFilter(m_item->getMetadata().getID());
+    // }
 
     m_mod = mod;
 
@@ -383,7 +386,8 @@ bool LocalModInfoPopup::init(Mod* mod, ModListLayer* list) {
         m_buttonMenu->addChildAtPosition(uninstallBtn, Anchor::Center, ccp(-85, 75));
 
         // todo: show update button on loader that invokes the installer
-        if (m_item && Index::get()->isUpdateAvailable(m_item)) {
+        // TODO: new index
+        if (m_item) {// && Index::get()->isUpdateAvailable(m_item)) {
             m_installBtnSpr = IconButtonSprite::create(
                 "GE_button_01.png"_spr,
                 CCSprite::createWithSpriteFrameName("install.png"_spr),

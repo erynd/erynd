@@ -37,7 +37,6 @@ protected:
     CCMenuItemSpriteExtra* m_filterBtn;
     ModListQuery m_query;
     ModListDisplay m_display = ModListDisplay::Concise;
-    EventListener<IndexUpdateFilter> m_indexListener;
     CCMenuItemSpriteExtra* m_leftArrow;
     CCMenuItemSpriteExtra* m_rightArrow;
     BaseModsList* m_modList = nullptr;
@@ -62,7 +61,6 @@ protected:
     void keyDown(enumKeyCodes) override;
     void textChanged(CCTextInputNode*) override;
     void createSearchControl();
-    void onIndexUpdate(IndexUpdateEvent* event);
 
     // most requested feature of all time
     void keyBackClicked() override;

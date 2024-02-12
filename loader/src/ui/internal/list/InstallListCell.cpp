@@ -292,7 +292,9 @@ IndexItemInstallListCell* IndexItemInstallListCell::create(
 }
 
 CCNode* IndexItemInstallListCell::createLogo(CCSize const& size) {
-    return geode::createIndexItemLogo(m_item, size);
+    // TODO: new index
+    // return geode::createIndexItemLogo(m_item, size);
+    return geode::createDefaultLogo(size);
 }
 std::string IndexItemInstallListCell::getID() const {
     return m_item->getMetadata().getID();
@@ -401,7 +403,9 @@ SelectVersionCell* SelectVersionCell::create(IndexItemHandle item, SelectVersion
 }
 
 CCNode* SelectVersionCell::createLogo(CCSize const& size) {
-    return geode::createIndexItemLogo(m_item, size);
+    // TODO: new index
+    // return geode::createIndexItemLogo(m_item, size);
+    return geode::createDefaultLogo(size);
 }
 std::string SelectVersionCell::getID() const {
     return m_item->getMetadata().getID();

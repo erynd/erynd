@@ -317,6 +317,8 @@ bool ModCell::init(
         auto viewSpr = ButtonSprite::create("View", "bigFont.fnt", "GJ_button_01.png", .8f);
         viewSpr->setScale(.65f);
 
+        // TODO: new index
+        #if 0
         auto latestIndexItem = Index::get()->getMajorItem(
             mod->getMetadata().getID()
         );
@@ -329,6 +331,7 @@ bool ModCell::init(
                 ComparableVersionInfo(mod->getMetadata().getVersion(), VersionCompare::MoreEq)
             );
         }
+        #endif
 
         auto viewBtn = CCMenuItemSpriteExtra::create(viewSpr, this, menu_selector(ModCell::onInfo));
         m_menu->addChild(viewBtn);
@@ -351,7 +354,7 @@ CCNode* ModCell::createLogo(CCSize const& size) {
 
 void IndexItemCell::onInfo(CCObject*) {
     log::debug("oninfo called, m_item2 is {}", m_item2.m_modId);
-    Index2::get().getDetailedInfo(m_item2.m_modId, [=](DetailedIndexItem2 const& item) {
+    Index::get()->getDetailedInfo(m_item2.m_modId, [=](DetailedIndexItem2 const& item) {
         IndexItemInfoPopup::create(item, m_layer)->show();
     }, [](std::string const& msg) {
         FLAlertLayer::create("Error", msg, "OK")->show();
@@ -508,7 +511,8 @@ std::optional<ModMetadata> IndexItemCell::getModMetadata() const {
 }
 
 CCNode* IndexItemCell::createLogo(CCSize const& size) {
-    if (m_item) geode::createIndexItemLogo(m_item, size);
+    // TODO: new index
+    // if (m_item) geode::createIndexItemLogo(m_item, size);
     return geode::createDefaultLogo(size);
 }
 

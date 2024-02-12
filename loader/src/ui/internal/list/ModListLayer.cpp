@@ -159,7 +159,8 @@ CCArray* ModListLayer::createModCells(ModListType type, ModListQuery const& quer
 bool ModListLayer::init() {
     if (!CCLayer::init()) return false;
 
-    m_indexListener.bind(this, &ModListLayer::onIndexUpdate);
+    // TODO: new index
+    // m_indexListener.bind(this, &ModListLayer::onIndexUpdate);
 
     auto winSize = CCDirector::sharedDirector()->getWinSize();
 
@@ -418,6 +419,8 @@ void ModListLayer::updateList(CCArray* items, bool keepScroll) {
     }
 
     // update index if needed
+    // TODO: new index
+    #if 0
     if (g_tab == ModListType::Download && !Index::get()->isUpToDate()) {
         m_listLabel->setVisible(true);
         // dont want to overwrite th message we set in UpdateProgress
@@ -443,6 +446,7 @@ void ModListLayer::updateList(CCArray* items, bool keepScroll) {
             m_loadingCircle = nullptr;
         }
     }
+    #endif
 
     // set list
     // TODO: 6th param dont know
@@ -495,7 +499,7 @@ void ModListLayer::reloadList(bool keepScroll, std::optional<ModListQuery> const
         case (ModListType::Download): {
             this->updateList(CCArray::create(), keepScroll);
 
-            Index2::get().getPageItems(m_page, IndexQuery2(), 
+            Index::get()->getPageItems(m_page, IndexQuery2(), 
                 [this, keepScroll](std::vector<IndexItem2> const& items) {
                 auto mods = CCArray::create();
                 for (auto& item : items) {
@@ -545,11 +549,13 @@ ModListQuery& ModListLayer::getQuery() {
 // Callbacks & Vtable impls
 
 void ModListLayer::onCheckForUpdates(CCObject*) {
-    Index::get()->update();
+    // TODO: new index
+    // Index::get()->update();
 }
 
-void ModListLayer::onIndexUpdate(IndexUpdateEvent* event) {
+// TODO: new index
 #if 0
+void ModListLayer::onIndexUpdate(IndexUpdateEvent* event) {
     std::visit(makeVisitor {
         [&](UpdateProgress const& prog) {
             auto msg = prog.second;
@@ -566,8 +572,8 @@ void ModListLayer::onIndexUpdate(IndexUpdateEvent* event) {
             this->reloadList();
         }
     }, event->status);
-#endif
 }
+#endif
 
 void ModListLayer::onExit(CCObject*) {
     CCDirector::sharedDirector()->replaceScene(
@@ -616,9 +622,11 @@ void ModListLayer::onTab(CCObject* pSender) {
         case ModListType::Installed: {
             m_modList = InstalledModsList::create(this, this->getListSize(), m_display);
         } break;
+        case ModListType::Featured:
         case ModListType::Download: {
             m_modList = IndexModsList::create(this, this->getListSize(), m_display);
         } break;
+
     }
     m_page = 0;
     this->addChild(m_modList);

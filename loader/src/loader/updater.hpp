@@ -2,7 +2,7 @@
 
 #include <string>
 #include <Geode/utils/MiniFunction.hpp>
-#include <Loader/Index2.hpp>
+#include <loader/Index2.hpp>
 
 namespace geode::updater {
     struct ResourceDownloadEvent : public Event {

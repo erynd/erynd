@@ -109,6 +109,8 @@ CCArray* InstallListPopup::createCells(std::unordered_map<std::string, InstallLi
         queue.push(dep);
     }
 
+    // TODO: new index
+#if 0
     auto index = Index::get();
     while (!queue.empty()) {
         auto const& item = queue.front();
@@ -167,6 +169,7 @@ CCArray* InstallListPopup::createCells(std::unordered_map<std::string, InstallLi
         top.push_back(unknownCell);
         queue.pop();
     }
+#endif
 
     auto mods = CCArray::create();
     for (auto const& item : top) {
@@ -274,9 +277,10 @@ void SelectVersionPopup::createList() {
 
 CCArray* SelectVersionPopup::createCells() {
     auto cells = CCArray::create();
-    for (auto& item : ranges::reverse(Index::get()->getItemsByModID(m_modID))) {
-        cells->addObject(SelectVersionCell::create(item, this, this->getCellSize()));
-    }
+    // TODO: new index
+    // for (auto& item : ranges::reverse(Index::get()->getItemsByModID(m_modID))) {
+    //     cells->addObject(SelectVersionCell::create(item, this, this->getCellSize()));
+    // }
     return cells;
 }
 

@@ -84,7 +84,8 @@ static std::optional<int> queryMatch(ModListQuery const& query, IndexItemHandle 
         return std::nullopt;
     }
     // if no force visibility was provided and item is already installed, don't show it
-    auto canInstall = Index::get()->canInstall(item);
+    // TODO: new index
+    auto canInstall = true; // Index::get()->canInstall(item);
     if (!query.forceInvalid && !canInstall) {
         // log::warn(
         //     "Removing {} from the list because it cannot be installed: {}",

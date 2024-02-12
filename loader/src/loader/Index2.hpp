@@ -45,7 +45,20 @@ namespace geode {
             metadata.setIsAPI(m_isAPI);
             return metadata;
         }
+
+        ModMetadata getMetadata() const {
+            return intoMetadata();
+        }
+
+        std::string getDownloadURL() const;
+        std::string getPackageHash() const;
+        std::unordered_set<PlatformID> getAvailablePlatforms() const;
+        bool isFeatured() const;
+        std::unordered_set<std::string> getTags() const;
+        bool isInstalled() const;
     };
+
+    using IndexItemHandle = std::shared_ptr<IndexItem2>;
 
     class DetailedIndexItem2 : public IndexItem2 {
     public:
@@ -63,20 +76,74 @@ namespace geode {
         }
     };
 
+    /**
+     * Event for when a mod is being installed from the index. Automatically 
+     * broadcast by the mods index; use ModInstallFilter to listen to these 
+     * events
+     */
+    struct GEODE_DLL ModInstallEvent : public Event {
+        /**
+         * The ID of the mod being installed
+         */
+        const std::string modID;
+        /**
+         * The current status of the installation
+         */
+        const UpdateStatus status;
+    
+    private:
+        ModInstallEvent(std::string const& id, const UpdateStatus status);
+
+        friend class Index;
+    };
+
+    /**
+     * Basic filter for listening to mod installation events. Always propagates 
+     * the event down the chain
+     */
+	class GEODE_DLL ModInstallFilter : public EventFilter<ModInstallEvent> {
+    protected:
+        std::string m_id;
+
+	public:
+		using Callback = void(ModInstallEvent*);
+	
+        ListenerResult handle(utils::MiniFunction<Callback> fn, ModInstallEvent* event);
+		ModInstallFilter(std::string const& id);
+        ModInstallFilter(ModInstallFilter const&) = default;
+	};
+
+    struct IndexInstallList {
+        /**
+         * Mod being installed
+         */
+        IndexItemHandle target;
+        /**
+         * The mod, its dependencies, everything needed to install it
+         */
+        std::vector<IndexItemHandle> list;
+    };
+
     struct IndexQuery2 {
         std::string m_search;
     };
 
-    class Index2 {
+    class Index {
         int m_pageLimit = 20;
     public:
-        static Index2& get() {
-            static Index2 instance;
-            return instance;
+        static Index* get() {
+            static Index instance;
+            return &instance;
         }
 
         int getPageLimit() const {
             return m_pageLimit;
+        }
+
+        bool isUpdating() const { return false;}
+
+        std::vector<std::string> getTags() const {
+            return {};
         }
 
         // server callback

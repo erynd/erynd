@@ -1,7 +1,6 @@
 #pragma once
 
 #include "../loader/Mod.hpp"
-#include "../loader/Index.hpp"
 
 namespace geode {
     /**
@@ -42,11 +41,12 @@ namespace geode {
     GEODE_DLL cocos2d::CCNode* createModLogo(
         Mod* mod, cocos2d::CCSize const& size
     );
-    /**
-     * Create a logo sprite for an index item
-     * @param size Size of the sprite
-     */
-    GEODE_DLL cocos2d::CCNode* createIndexItemLogo(
-        IndexItemHandle item, cocos2d::CCSize const& size
-    );
+    // TODO: new index  does this really need to be public
+    // /**
+    //  * Create a logo sprite for an index item
+    //  * @param size Size of the sprite
+    //  */
+    // GEODE_DLL cocos2d::CCNode* createIndexItemLogo(
+    //     IndexItemHandle item, cocos2d::CCSize const& size
+    // );
 }
