@@ -21,7 +21,7 @@
 #include <Geode/utils/web.hpp>
 #include <loader/LoaderImpl.hpp>
 #include <ui/internal/list/InstallListPopup.hpp>
-#include <loader/Index2.hpp>
+#include <loader/Index.hpp>
 
 static constexpr int const TAG_CONFIRM_UNINSTALL = 5;
 static constexpr int const TAG_CONFIRM_UPDATE = 6;
@@ -609,7 +609,7 @@ IndexItemInfoPopup::IndexItemInfoPopup()
         ModInstallFilter("")
     ) {}
 
-bool IndexItemInfoPopup::init(DetailedIndexItem2 item, ModListLayer* list) {
+bool IndexItemInfoPopup::init(DetailedIndexItem item, ModListLayer* list) {
     m_item2 = item;
     // TODO: new index
     // m_installListener.setFilter(m_item->getMetadata().getID());
@@ -694,7 +694,7 @@ ModMetadata IndexItemInfoPopup::getMetadata() const {
 }
 
 IndexItemInfoPopup* IndexItemInfoPopup::create(
-    DetailedIndexItem2 item, ModListLayer* list
+    DetailedIndexItem item, ModListLayer* list
 ) {
     auto ret = new IndexItemInfoPopup;
     if (ret && ret->init(item, list)) {

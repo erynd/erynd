@@ -25,7 +25,7 @@ namespace geode {
      */
     using UpdateStatus = std::variant<UpdateFinished, UpdateProgress, UpdateFailed>;
 
-    class IndexItem2 {
+    class IndexItem {
     public:
         std::string m_modId;
         VersionInfo m_version;
@@ -58,18 +58,18 @@ namespace geode {
         bool isInstalled() const;
     };
 
-    using IndexItemHandle = std::shared_ptr<IndexItem2>;
+    using IndexItemHandle = std::shared_ptr<IndexItem>;
 
-    class DetailedIndexItem2 : public IndexItem2 {
+    class DetailedIndexItem : public IndexItem {
     public:
         std::optional<std::string> m_about;
         std::optional<std::string> m_changelog;
         // flattened out dependencies
         // can contain duplicates
-        std::vector<IndexItem2> m_dependencies;
+        std::vector<IndexItem> m_dependencies;
 
         ModMetadata intoMetadata() const {
-            ModMetadata metadata = IndexItem2::intoMetadata();
+            ModMetadata metadata = IndexItem::intoMetadata();
             metadata.setDetails(m_about);
             metadata.setChangelog(m_changelog);
             return metadata;
@@ -124,7 +124,7 @@ namespace geode {
         std::vector<IndexItemHandle> list;
     };
 
-    struct IndexQuery2 {
+    struct IndexQuery {
         std::string m_search;
     };
 
@@ -148,8 +148,8 @@ namespace geode {
 
         // server callback
         // todo: caching
-        void getPageItems(int page, IndexQuery2 const& query, MiniFunction<void(std::vector<IndexItem2> const&)> callback, MiniFunction<void(std::string const&)> error);
+        void getPageItems(int page, IndexQuery const& query, MiniFunction<void(std::vector<IndexItem> const&)> callback, MiniFunction<void(std::string const&)> error);
 
-        void getDetailedInfo(std::string const& modId, MiniFunction<void(DetailedIndexItem2 const&)> callback, MiniFunction<void(std::string const&)> error);
+        void getDetailedInfo(std::string const& modId, MiniFunction<void(DetailedIndexItem const&)> callback, MiniFunction<void(std::string const&)> error);
     };
 };

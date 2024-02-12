@@ -5,7 +5,7 @@
 #include <Geode/binding/FLAlertLayerProtocol.hpp>
 #include <Geode/loader/Loader.hpp>
 #include <Geode/loader/ModMetadata.hpp>
-#include <loader/Index2.hpp>
+#include <loader/Index.hpp>
 
 #include "../info/TagNode.hpp"
 

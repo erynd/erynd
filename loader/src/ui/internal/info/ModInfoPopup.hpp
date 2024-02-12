@@ -5,7 +5,7 @@
 #include <Geode/ui/MDTextArea.hpp>
 #include <Geode/ui/Scrollbar.hpp>
 #include <Geode/ui/IconButtonSprite.hpp>
-#include <loader/Index2.hpp>
+#include <loader/Index.hpp>
 #include <Geode/ui/Popup.hpp>
 
 using namespace geode::prelude;
@@ -90,9 +90,9 @@ class IndexItemInfoPopup : public ModInfoPopup {
 protected:
     EventListener<ModInstallFilter> m_installListener;
 
-    DetailedIndexItem2 m_item2;
+    DetailedIndexItem m_item2;
 
-    bool init(DetailedIndexItem2 item, ModListLayer* list);
+    bool init(DetailedIndexItem item, ModListLayer* list);
 
     void onInstallProgress(ModInstallEvent* event);
     void onInstall(CCObject*);
@@ -103,5 +103,5 @@ protected:
     IndexItemInfoPopup();
 
 public:
-    static IndexItemInfoPopup* create(DetailedIndexItem2 item, ModListLayer* list);
+    static IndexItemInfoPopup* create(DetailedIndexItem item, ModListLayer* list);
 };

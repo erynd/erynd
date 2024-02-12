@@ -2,13 +2,13 @@
 
 #include <Geode/Geode.hpp>
 #include "BaseModsList.hpp"
-#include "../../../loader/Index2.hpp"
+#include <loader/Index.hpp>
 
 using namespace geode::prelude;
 
 class IndexModsList : public BaseModsList {
 public:
-    std::vector<IndexItem2> m_items;
+    std::vector<IndexItem> m_items;
     int m_itemCount = 0;
     LoadingCircle* m_loadingCircle = nullptr;
     
@@ -21,7 +21,7 @@ public:
     void addLoadingCircle();
     void removeLoadingCircle();
 
-    void handleItems(std::vector<IndexItem2> const& items);
+    void handleItems(std::vector<IndexItem> const& items);
     void handleError(std::string const& error);
     void updateItems();
 

@@ -14,7 +14,7 @@
 #include <Geode/ui/ListView.hpp>
 #include <Geode/utils/string.hpp>
 #include <Geode/utils/ranges.hpp>
-#include <loader/Index2.hpp>
+#include <loader/Index.hpp>
 #include "InstalledModsList.hpp"
 #include "IndexModsList.hpp"
 #include <Geode/loader/Mod.hpp>
@@ -499,8 +499,8 @@ void ModListLayer::reloadList(bool keepScroll, std::optional<ModListQuery> const
         case (ModListType::Download): {
             this->updateList(CCArray::create(), keepScroll);
 
-            Index::get()->getPageItems(m_page, IndexQuery2(), 
-                [this, keepScroll](std::vector<IndexItem2> const& items) {
+            Index::get()->getPageItems(m_page, IndexQuery(), 
+                [this, keepScroll](std::vector<IndexItem> const& items) {
                 auto mods = CCArray::create();
                 for (auto& item : items) {
                     mods->addObject(IndexItemCell::create(

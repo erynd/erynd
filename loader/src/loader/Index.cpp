@@ -1,4 +1,4 @@
-#include "Index2.hpp"
+#include "Index.hpp"
 #include <Geode/Geode.hpp>
 #include <Geode/utils/web.hpp>
 #include <loader/LoaderImpl.hpp>
@@ -29,7 +29,7 @@ std::string buildQueryString(std::initializer_list<std::pair<std::string, std::s
     return query;
 }
 
-void Index::getPageItems(int page, IndexQuery2 const& query, MiniFunction<void(std::vector<IndexItem2> const&)> callback, MiniFunction<void(std::string const&)> error) {
+void Index::getPageItems(int page, IndexQuery const& query, MiniFunction<void(std::vector<IndexItem> const&)> callback, MiniFunction<void(std::string const&)> error) {
     web::AsyncWebRequest()
         .userAgent("Geode Loader")
         .get(GEODE_INDEX_URL "/mods?" + buildQueryString({
@@ -40,9 +40,9 @@ void Index::getPageItems(int page, IndexQuery2 const& query, MiniFunction<void(s
         }))
         .json()
         .then([=](matjson::Value const& json) {
-            std::vector<IndexItem2> items;
+            std::vector<IndexItem> items;
             for (auto const& entry : json["payload"]["data"].as_array()) {
-                IndexItem2 item;
+                IndexItem item;
                 auto const& latestVer = entry["versions"][0];
                 item.m_modId = entry["id"].as_string();
                 item.m_version = VersionInfo::parse(entry["latest_version"].as_string()).unwrap();
@@ -65,13 +65,13 @@ void Index::getPageItems(int page, IndexQuery2 const& query, MiniFunction<void(s
         });
 }
 
-void Index::getDetailedInfo(std::string const& modId, MiniFunction<void(DetailedIndexItem2 const&)> callback, MiniFunction<void(std::string const&)> error) {
+void Index::getDetailedInfo(std::string const& modId, MiniFunction<void(DetailedIndexItem const&)> callback, MiniFunction<void(std::string const&)> error) {
     web::AsyncWebRequest()
         .userAgent("Geode Loader")
         .get(GEODE_INDEX_URL "/mods/" + modId)
         .json()
         .then([=](matjson::Value const& json) {
-            DetailedIndexItem2 item;
+            DetailedIndexItem item;
             auto const data = json["payload"];
             auto const& latestVer = data["versions"][0];
             item.m_modId = data["id"].as_string();
@@ -108,21 +108,21 @@ ListenerResult ModInstallFilter::handle(utils::MiniFunction<Callback> fn, ModIns
 
 ModInstallFilter::ModInstallFilter(std::string const& id) : m_id(id) {}
 
-std::string IndexItem2::getDownloadURL() const {
+std::string IndexItem::getDownloadURL() const {
     return {};
 }
-std::string IndexItem2::getPackageHash() const {
+std::string IndexItem::getPackageHash() const {
     return {};
 }
-std::unordered_set<PlatformID> IndexItem2::getAvailablePlatforms() const {
+std::unordered_set<PlatformID> IndexItem::getAvailablePlatforms() const {
     return {};
 }
-bool IndexItem2::isFeatured() const {
+bool IndexItem::isFeatured() const {
     return {};
 }
-std::unordered_set<std::string> IndexItem2::getTags() const {
+std::unordered_set<std::string> IndexItem::getTags() const {
     return {};
 }
-bool IndexItem2::isInstalled() const {
+bool IndexItem::isInstalled() const {
     return {};
 }

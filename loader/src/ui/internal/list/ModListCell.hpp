@@ -5,7 +5,7 @@
 #include <Geode/binding/FLAlertLayerProtocol.hpp>
 #include <Geode/loader/Loader.hpp>
 #include <Geode/loader/ModMetadata.hpp>
-#include "../../../loader/Index2.hpp"
+#include <loader/Index.hpp>
 
 using namespace geode::prelude;
 
@@ -84,7 +84,7 @@ public:
 class IndexItemCell : public ModListCell {
 protected:
     IndexItemHandle m_item = nullptr;
-    IndexItem2 m_item2;
+    IndexItem m_item2;
 
     bool init(
         IndexItemHandle item,
@@ -94,7 +94,7 @@ protected:
     );
 
     bool init(
-        IndexItem2 const& item,
+        IndexItem const& item,
         ModListLayer* list,
         ModListDisplay display,
         CCSize const& size
@@ -112,7 +112,7 @@ public:
     );
 
     static IndexItemCell* create(
-        IndexItem2 const& item,
+        IndexItem const& item,
         ModListLayer* list,
         ModListDisplay display,
         CCSize const& size

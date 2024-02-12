@@ -354,7 +354,7 @@ CCNode* ModCell::createLogo(CCSize const& size) {
 
 void IndexItemCell::onInfo(CCObject*) {
     log::debug("oninfo called, m_item2 is {}", m_item2.m_modId);
-    Index::get()->getDetailedInfo(m_item2.m_modId, [=](DetailedIndexItem2 const& item) {
+    Index::get()->getDetailedInfo(m_item2.m_modId, [=, this](DetailedIndexItem const& item) {
         IndexItemInfoPopup::create(item, m_layer)->show();
     }, [](std::string const& msg) {
         FLAlertLayer::create("Error", msg, "OK")->show();
@@ -380,7 +380,7 @@ IndexItemCell* IndexItemCell::create(
 }
 
 IndexItemCell* IndexItemCell::create(
-    IndexItem2 const& item,
+    IndexItem const& item,
     ModListLayer* list,
     ModListDisplay display,
     CCSize const& size
@@ -448,7 +448,7 @@ bool IndexItemCell::init(
 }
 
 bool IndexItemCell::init(
-    IndexItem2 const& item,
+    IndexItem const& item,
     ModListLayer* list,
     ModListDisplay display,
     CCSize const& size
