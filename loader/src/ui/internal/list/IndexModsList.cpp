@@ -70,10 +70,10 @@ void IndexModsList::updateItems() {
     this->addLoadingCircle();
 
     Index::get()->searchMods(m_page, IndexQuery())
-        ->then([this](std::vector<IndexItem> const& items) {
+        .then([this](std::vector<IndexItem> const& items) {
             this->handleItems(items);
         })
-        ->expect([this](std::string const& error) {
+        .expect([this](std::string const& error) {
             this->handleError(error);
         });
 }

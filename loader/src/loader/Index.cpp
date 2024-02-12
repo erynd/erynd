@@ -29,8 +29,8 @@ std::string buildQueryString(std::initializer_list<std::pair<std::string, std::s
     return query;
 }
 
-std::shared_ptr<IndexPromise<std::vector<IndexItem> const&>> Index::searchMods(int page, IndexQuery const& query) {
-    return IndexPromise<std::vector<IndexItem> const&>::create([=, this](auto resolve, auto reject) {
+IndexPromise<std::vector<IndexItem> const&> Index::searchMods(int page, IndexQuery const& query) {
+    return IndexPromise<std::vector<IndexItem> const&>([=, this](auto resolve, auto reject) {
         web::AsyncWebRequest()
             .userAgent("Geode Loader")
             .get(GEODE_INDEX_URL "/mods?" + buildQueryString({
@@ -68,8 +68,8 @@ std::shared_ptr<IndexPromise<std::vector<IndexItem> const&>> Index::searchMods(i
     });
 }
 
-std::shared_ptr<IndexPromise<DetailedIndexItem const&>> Index::fetchModInfo(std::string const& modId) {
-    return IndexPromise<DetailedIndexItem const&>::create([=](auto resolve, auto reject) {
+IndexPromise<DetailedIndexItem const&> Index::fetchModInfo(std::string const& modId) {
+    return IndexPromise<DetailedIndexItem const&>([=](auto resolve, auto reject) {
         web::AsyncWebRequest()
             .userAgent("Geode Loader")
             .get(GEODE_INDEX_URL "/mods/" + modId)

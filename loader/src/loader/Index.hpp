@@ -131,40 +131,41 @@ namespace geode {
     };
 
     template <class Type>
-    class IndexPromise : public std::enable_shared_from_this<IndexPromise<Type>> {
-        MiniFunction<void(Type)> m_then;
-        MiniFunction<void(std::string const&)> m_expect;
-
-        // TODO: this is definitely copying the `Type` when it shouldnt..
-        void setup(MiniFunction<void(MiniFunction<void(Type)> resolve, MiniFunction<void(std::string const&)> reject)> callback) {
-            auto ptr = this->shared_from_this();
-            callback([=](auto&& value) {
+    class IndexPromise {
+        // TODO: this is definitely copying Type when it shouldnt
+        using ThenFn = MiniFunction<void(Type)>;
+        using ExpectFn = MiniFunction<void(std::string const&)>;
+        using CreateFn = MiniFunction<void(ThenFn resolve, ExpectFn reject)>;
+        struct Inner {
+            ThenFn m_then;
+            ExpectFn m_expect;
+        };
+        std::shared_ptr<Inner> m_ptr;
+    public:
+        IndexPromise(CreateFn callback) {
+            m_ptr = std::make_shared<Inner>();
+            callback([ptr = m_ptr](auto&& value) {
                 // TODO: epic race condition i think,
                 // promise could resolve before m_then is set!
                 if (ptr->m_then) {
                     ptr->m_then(value);
                 }
-            }, [=](auto&& error) {
+            }, [ptr = m_ptr](auto&& error) {
                 if (ptr->m_expect) {
                     ptr->m_expect(error);
                 }
             });
         }
-    public:
-        auto then(auto cb) {
-            m_then = cb;
-            return this->shared_from_this();
+
+        // dont try to chain this
+        auto& then(ThenFn callback) {
+            m_ptr->m_then = callback;
+            return *this;
         }
 
-        auto expect(auto cb) {
-            m_expect = cb;
-            return this->shared_from_this();
-        }
-
-        static std::shared_ptr<IndexPromise<Type>> create(MiniFunction<void(MiniFunction<void(Type)> resolve, MiniFunction<void(std::string const&)> reject)> callback) {
-            auto ptr = std::make_shared<IndexPromise<Type>>();
-            ptr->setup(callback);
-            return ptr;
+        auto& expect(ExpectFn callback) {
+            m_ptr->m_expect = callback;
+            return *this;
         }
     };
 
@@ -187,9 +188,9 @@ namespace geode {
         }
 
         // server callback
-        // todo: caching
-        std::shared_ptr<IndexPromise<std::vector<IndexItem> const&>> searchMods(int page, IndexQuery const& query);
+        // TODO: caching
+        IndexPromise<std::vector<IndexItem> const&> searchMods(int page, IndexQuery const& query);
 
-        std::shared_ptr<IndexPromise<DetailedIndexItem const&>> fetchModInfo(std::string const& modId);
+        IndexPromise<DetailedIndexItem const&> fetchModInfo(std::string const& modId);
     };
 };
