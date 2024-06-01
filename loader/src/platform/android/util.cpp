@@ -68,7 +68,7 @@ namespace {
     std::string s_savedBaseDir = "";
 
     ghc::filesystem::path getBaseDir() {
-        std::string path = "/storage/emulated/0/Android/data/com.geode.launcher/files";
+        std::string path = "/storage/emulated/0/Android/data/com.erynd.launcher/files";
 
         if (!s_savedBaseDir.empty()) {
             return ghc::filesystem::path(s_savedBaseDir);
@@ -100,7 +100,7 @@ ghc::filesystem::path dirs::getSaveDir() {
 ghc::filesystem::path dirs::getModRuntimeDir() {
     static std::string cachedResult = [] {
         // incase the jni fails, default to this
-        std::string path = "/data/user/0/com.geode.launcher/files/";
+        std::string path = "/data/user/0/com.erynd.launcher/files/";
 
         JniMethodInfo t;
         if (JniHelper::getStaticMethodInfo(t, "com/geode/launcher/utils/GeodeUtils", "getInternalDirectory", "()Ljava/lang/String;")) {

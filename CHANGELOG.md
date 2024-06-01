@@ -287,7 +287,7 @@
    * Fixes the text input node allowing typing for 1 less character
    * Uses `logcat` in order to get crash reports, so reopening the game is required to generate them
    * Broma requires classes to be added `[[link(android)]]` in order to be linked
-   * All Geode and GD files are stored in `Android/data/com.geode.launcher/files`
+   * All Geode and GD files are stored in `Android/data/com.erynd.launcher/files`
      * Game files in `game`, save files in `save`
  * Allow logging to be disabled per mod (6d599a5)
  * Mod cells use layouts (114fa46)
