@@ -11,7 +11,7 @@ std::string Loader::Impl::getGameVersion() {
         // getGameVersion can only run after JNI_OnLoad is called. otherwise it crashes
 
         JniMethodInfo t;
-        if (JniHelper::getStaticMethodInfo(t, "com/geode/launcher/utils/GeodeUtils", "getGameVersion", "()Ljava/lang/String;")) {
+        if (JniHelper::getStaticMethodInfo(t, "com/erynd/launcher/utils/EryndUtils", "getGameVersion", "()Ljava/lang/String;")) {
             jstring str = reinterpret_cast<jstring>(t.env->CallStaticObjectMethod(t.classID, t.methodID));
             t.env->DeleteLocalRef(t.classID);
             m_gdVersion = JniHelper::jstring2string(str);
@@ -45,7 +45,7 @@ std::string Loader::Impl::getLaunchCommand() const {
     std::string launchArgs = "";
 
     JniMethodInfo t;
-    if (JniHelper::getStaticMethodInfo(t, "com/geode/launcher/utils/GeodeUtils", "getLaunchArguments", "()Ljava/lang/String;")) {
+    if (JniHelper::getStaticMethodInfo(t, "com/erynd/launcher/utils/EryndUtils", "getLaunchArguments", "()Ljava/lang/String;")) {
         jstring str = reinterpret_cast<jstring>(t.env->CallStaticObjectMethod(t.classID, t.methodID));
         t.env->DeleteLocalRef(t.classID);
         launchArgs = JniHelper::jstring2string(str);

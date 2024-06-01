@@ -312,7 +312,7 @@ bool crashlog::setupPlatformHandler() {
     
     JniMethodInfo t;
     
-    if (JniHelper::getStaticMethodInfo(t, "com/geode/launcher/utils/GeodeUtils", "getLogcatCrashBuffer", "()Ljava/lang/String;")) {
+    if (JniHelper::getStaticMethodInfo(t, "com/erynd/launcher/utils/EryndUtils", "getLogcatCrashBuffer", "()Ljava/lang/String;")) {
         jstring stringResult = (jstring)t.env->CallStaticObjectMethod(t.classID, t.methodID);
 
         s_result = JniHelper::jstring2string(stringResult);

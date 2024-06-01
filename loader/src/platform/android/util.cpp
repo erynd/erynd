@@ -22,7 +22,7 @@ using geode::utils::permission::Permission;
 
 bool utils::clipboard::write(std::string const& data) {
     JniMethodInfo t;
-    if (JniHelper::getStaticMethodInfo(t, "com/geode/launcher/utils/GeodeUtils", "writeClipboard", "(Ljava/lang/String;)V")) {
+    if (JniHelper::getStaticMethodInfo(t, "com/erynd/launcher/utils/EryndUtils", "writeClipboard", "(Ljava/lang/String;)V")) {
         jstring stringArg1 = t.env->NewStringUTF(data.c_str());
 
         t.env->CallStaticVoidMethod(t.classID, t.methodID, stringArg1);
@@ -36,7 +36,7 @@ bool utils::clipboard::write(std::string const& data) {
 
 std::string utils::clipboard::read() {
     JniMethodInfo t;
-    if (JniHelper::getStaticMethodInfo(t, "com/geode/launcher/utils/GeodeUtils", "readClipboard", "()Ljava/lang/String;")) {
+    if (JniHelper::getStaticMethodInfo(t, "com/erynd/launcher/utils/EryndUtils", "readClipboard", "()Ljava/lang/String;")) {
         jstring stringResult = (jstring)t.env->CallStaticObjectMethod(t.classID, t.methodID);
 
         std::string result = JniHelper::jstring2string(stringResult);
@@ -75,7 +75,7 @@ namespace {
         }
 
         JniMethodInfo t;
-        if (JniHelper::getStaticMethodInfo(t, "com/geode/launcher/utils/GeodeUtils", "getBaseDirectory", "()Ljava/lang/String;")) {
+        if (JniHelper::getStaticMethodInfo(t, "com/erynd/launcher/utils/EryndUtils", "getBaseDirectory", "()Ljava/lang/String;")) {
             jstring str = reinterpret_cast<jstring>(t.env->CallStaticObjectMethod(t.classID, t.methodID));
             t.env->DeleteLocalRef(t.classID);
             path = JniHelper::jstring2string(str);
@@ -103,7 +103,7 @@ ghc::filesystem::path dirs::getModRuntimeDir() {
         std::string path = "/data/user/0/com.erynd.launcher/files/";
 
         JniMethodInfo t;
-        if (JniHelper::getStaticMethodInfo(t, "com/geode/launcher/utils/GeodeUtils", "getInternalDirectory", "()Ljava/lang/String;")) {
+        if (JniHelper::getStaticMethodInfo(t, "com/erynd/launcher/utils/EryndUtils", "getInternalDirectory", "()Ljava/lang/String;")) {
             jstring str = reinterpret_cast<jstring>(t.env->CallStaticObjectMethod(t.classID, t.methodID));
             t.env->DeleteLocalRef(t.classID);
             path = JniHelper::jstring2string(str);
@@ -123,7 +123,7 @@ void utils::web::openLinkInBrowser(std::string const& url) {
 
 bool utils::file::openFolder(ghc::filesystem::path const& path) {
     JniMethodInfo t;
-    if (JniHelper::getStaticMethodInfo(t, "com/geode/launcher/utils/GeodeUtils", "openFolder", "(Ljava/lang/String;)Z")) {
+    if (JniHelper::getStaticMethodInfo(t, "com/erynd/launcher/utils/EryndUtils", "openFolder", "(Ljava/lang/String;)Z")) {
         jstring stringArg1 = t.env->NewStringUTF(path.string().c_str());
 
         jboolean result = t.env->CallStaticBooleanMethod(t.classID, t.methodID, stringArg1);
@@ -141,7 +141,7 @@ static utils::MiniFunction<void(std::vector<ghc::filesystem::path>)> s_filesCall
 static utils::MiniFunction<void()> s_failedCallback;
 
 extern "C"
-JNIEXPORT void JNICALL Java_com_geode_launcher_utils_GeodeUtils_selectFileCallback(
+JNIEXPORT void JNICALL Java_com_erynd_launcher_utils_EryndUtils_selectFileCallback(
         JNIEnv *env,
         jobject,
         jstring data
@@ -157,7 +157,7 @@ JNIEXPORT void JNICALL Java_com_geode_launcher_utils_GeodeUtils_selectFileCallba
 }
 
 extern "C"
-JNIEXPORT void JNICALL Java_com_geode_launcher_utils_GeodeUtils_selectFilesCallback(
+JNIEXPORT void JNICALL Java_com_erynd_launcher_utils_EryndUtils_selectFilesCallback(
         JNIEnv *env,
         jobject,
         jobjectArray datas
@@ -179,7 +179,7 @@ JNIEXPORT void JNICALL Java_com_geode_launcher_utils_GeodeUtils_selectFilesCallb
 }
 
 extern "C"
-JNIEXPORT void JNICALL Java_com_geode_launcher_utils_GeodeUtils_failedCallback(
+JNIEXPORT void JNICALL Java_com_erynd_launcher_utils_EryndUtils_failedCallback(
         JNIEnv *env,
         jobject
 ) {
@@ -216,7 +216,7 @@ void file::pickFile(
     }
 
     JniMethodInfo t;
-    if (JniHelper::getStaticMethodInfo(t, "com/geode/launcher/utils/GeodeUtils", method.c_str(), "(Ljava/lang/String;)Z")) {
+    if (JniHelper::getStaticMethodInfo(t, "com/erynd/launcher/utils/EryndUtils", method.c_str(), "(Ljava/lang/String;)Z")) {
         jstring stringArg1 = t.env->NewStringUTF(options.defaultPath.value_or(ghc::filesystem::path()).filename().string().c_str());
 
         jboolean result = t.env->CallStaticBooleanMethod(t.classID, t.methodID, stringArg1);
@@ -247,7 +247,7 @@ void file::pickFiles(
     s_failedCallback = failed;
 
     JniMethodInfo t;
-    if (JniHelper::getStaticMethodInfo(t, "com/geode/launcher/utils/GeodeUtils", "selectFiles", "(Ljava/lang/String;)Z")) {
+    if (JniHelper::getStaticMethodInfo(t, "com/erynd/launcher/utils/EryndUtils", "selectFiles", "(Ljava/lang/String;)Z")) {
         jstring stringArg1 = t.env->NewStringUTF(options.defaultPath.value_or(ghc::filesystem::path()).string().c_str());
 
         jboolean result = t.env->CallStaticBooleanMethod(t.classID, t.methodID, stringArg1);
@@ -297,7 +297,7 @@ void geode::utils::game::restart() {
     public:
         void restart() {
             JniMethodInfo t;
-            if (JniHelper::getStaticMethodInfo(t, "com/geode/launcher/utils/GeodeUtils", "restartGame", "()V")) {
+            if (JniHelper::getStaticMethodInfo(t, "com/erynd/launcher/utils/EryndUtils", "restartGame", "()V")) {
                 t.env->CallStaticVoidMethod(t.classID, t.methodID);
 
                 t.env->DeleteLocalRef(t.classID);
@@ -330,7 +330,7 @@ static const char* permissionToName(Permission permission) {
 
 bool geode::utils::permission::getPermissionStatus(Permission permission) {
     JniMethodInfo info;
-    if (JniHelper::getStaticMethodInfo(info, "com/geode/launcher/utils/GeodeUtils", "getPermissionStatus", "(Ljava/lang/String;)Z")) {
+    if (JniHelper::getStaticMethodInfo(info, "com/erynd/launcher/utils/EryndUtils", "getPermissionStatus", "(Ljava/lang/String;)Z")) {
         jstring permString = info.env->NewStringUTF(permissionToName(permission));
         jboolean result = info.env->CallStaticBooleanMethod(info.classID, info.methodID, permString);
         info.env->DeleteLocalRef(info.classID);
@@ -347,7 +347,7 @@ bool geode::utils::permission::getPermissionStatus(Permission permission) {
 static MiniFunction<void(bool)> s_permissionCallback;
 
 extern "C"
-JNIEXPORT void JNICALL Java_com_geode_launcher_utils_GeodeUtils_permissionCallback(
+JNIEXPORT void JNICALL Java_com_erynd_launcher_utils_EryndUtils_permissionCallback(
         JNIEnv* env,
         jobject,
         jboolean granted
@@ -362,7 +362,7 @@ JNIEXPORT void JNICALL Java_com_geode_launcher_utils_GeodeUtils_permissionCallba
 void geode::utils::permission::requestPermission(Permission permission, utils::MiniFunction<void(bool)> callback) {
     s_permissionCallback = callback;
     JniMethodInfo info;
-    if (JniHelper::getStaticMethodInfo(info, "com/geode/launcher/utils/GeodeUtils", "requestPermission", "(Ljava/lang/String;)V")) {
+    if (JniHelper::getStaticMethodInfo(info, "com/erynd/launcher/utils/EryndUtils", "requestPermission", "(Ljava/lang/String;)V")) {
         jstring permString = info.env->NewStringUTF(permissionToName(permission));
         info.env->CallStaticVoidMethod(info.classID, info.methodID, permString);
         info.env->DeleteLocalRef(info.classID);

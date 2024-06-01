@@ -97,7 +97,7 @@ namespace {
 }
 
 extern "C" JNIEXPORT void JNICALL
-Java_com_geode_launcher_utils_GeodeUtils_nativeKeyDown(
+Java_com_erynd_launcher_utils_EryndUtils_nativeKeyDown(
 	JNIEnv* env, jobject, jint keycode, jint modifiers, jboolean isRepeat
 ) {
     if (keycode != AKEYCODE_BACK && keycode != AKEYCODE_MENU) {
@@ -121,7 +121,7 @@ Java_com_geode_launcher_utils_GeodeUtils_nativeKeyDown(
     }
 }
 
-extern "C" JNIEXPORT void JNICALL Java_com_geode_launcher_utils_GeodeUtils_nativeKeyUp(
+extern "C" JNIEXPORT void JNICALL Java_com_erynd_launcher_utils_EryndUtils_nativeKeyUp(
     JNIEnv* env, jobject, jint keycode, jint modifiers
 ) {
     // back/menu keys
@@ -146,7 +146,7 @@ extern "C" JNIEXPORT void JNICALL Java_com_geode_launcher_utils_GeodeUtils_nativ
 
 constexpr auto g_scrollFactor = -13.0f;
 
-extern "C" JNIEXPORT void JNICALL Java_com_geode_launcher_utils_GeodeUtils_nativeActionScroll(
+extern "C" JNIEXPORT void JNICALL Java_com_erynd_launcher_utils_EryndUtils_nativeActionScroll(
     JNIEnv* env, jobject, jfloat scrollX, jfloat scrollY
 ) {
     cocos2d::CCDirector::sharedDirector()->getMouseDispatcher()->dispatchScrollMSG(
@@ -154,7 +154,7 @@ extern "C" JNIEXPORT void JNICALL Java_com_geode_launcher_utils_GeodeUtils_nativ
     );
 }
 
-extern "C" JNIEXPORT void JNICALL Java_com_geode_launcher_utils_GeodeUtils_resizeSurface(
+extern "C" JNIEXPORT void JNICALL Java_com_erynd_launcher_utils_EryndUtils_resizeSurface(
     JNIEnv* env, jobject, jint width, jint height
 ) {
     auto fWidth = static_cast<float>(width);
